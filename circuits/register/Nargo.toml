@@ -1,0 +1,7 @@
+[package]
+name = "dark_register"
+type = "bin"
+authors = [""]
+
+[dependencies]
+dark_lib = { path = "../lib" }

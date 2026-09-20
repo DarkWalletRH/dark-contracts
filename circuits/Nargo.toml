@@ -1,0 +1,2 @@
+[workspace]
+members = ["lib", "register", "transfer", "withdraw", "disclose_range"]

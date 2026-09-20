@@ -1,0 +1,26 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["node_modules"]
+test = "test"
+script = "script"
+solc = "0.8.28"
+evm_version = "cancun"
+optimizer = true
+via_ir = true
+optimizer_runs = 1000
+ffi = true
+# deployments/: the verifier codehash pin the deploy script reads. out/: scratch for its tests.
+fs_permissions = [
+  { access = "read", path = "./deployments" },
+  { access = "read-write", path = "./out" },
+]
+remappings = [
+  "@openzeppelin/=node_modules/@openzeppelin/",
+  "forge-std/=node_modules/forge-std/src/",
+]
+
+[invariant]
+runs = 32
+depth = 32
+fail_on_revert = true

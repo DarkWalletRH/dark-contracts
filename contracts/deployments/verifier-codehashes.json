@@ -1,0 +1,38 @@
+{
+  "46630": {
+    "DarkRegisterVerifier": {
+      "address": "0x97dB97Eec8d722a5C48F0Fb1612D1DC160A7c085",
+      "codehash": "0xba0be65adc3e20c11b8b289369debe433d1dc130892aa97ea233bd4f882ae9b1",
+      "verifierSolSha256": "8c653518612d5de766ae8ce46f2b7300038427ef6d00d77d42f50d889766c0fa"
+    },
+    "DarkTransferVerifier": {
+      "address": "0xAf2332Ef3910A9328418b4963BA0E50b9d5846Fe",
+      "codehash": "0xff0d46fa0004b39a6ed6ccc98e244099a92e727a87dfd7e991f9a109ef8fac5e",
+      "verifierSolSha256": "49b49c656a8a5f401de9573eb73b153cf6d69b8f6f45ecec9559ee5ab327862d"
+    },
+    "DarkWithdrawVerifier": {
+      "address": "0x0905e66f00Bd3261A8E32Dc4b6Cb060a6B8A8f74",
+      "codehash": "0xb25a941d6a912054701dade6803453fceaf367b5805d12c4b3b28939adbb5dbb",
+      "verifierSolSha256": "f5e72410893fd229f45f122e0c8a6980bcb242ec17da3a7c87c42a0d068c614d"
+    },
+    "RelationsLib": {
+      "address": "0xb771CCeda9eABf17A0E26A1109bb36fb6ea8eE79",
+      "codehash": "0xb55e39ad1962da525a679f457a1c4948620309124c5e5f43e46f025df855231e"
+    },
+    "ZKTranscriptLib": {
+      "address": "0x43804a423f7Da1297C91C47Fc959DBe937788e4c",
+      "codehash": "0x5393170162991bc6cd7787e247fda6ea0022d64e66cd2747db8f86a2bfa8e304"
+    },
+    "DarkVault": {
+      "address": "0x14fa77C25357C1Dc7de0DD7F36e0EbE807110aB7",
+      "codehash": "0x63c3f0d04326c7378a9850f563caf361b999293084e8f28ffdcf207b1e8b3f0c",
+      "note": "Not generated from a circuit, so no verifierSolSha256. Its four immutables (usdg, registry, transfer/withdraw verifiers) are baked into the runtime bytecode, so this codehash is deployment-specific and is the only thing that can catch a wrong compile or a wrong address in config."
+    },
+    "DarkKeyRegistry": {
+      "address": "0x850907E912c5F89B233252E3633BEfaBe66232B2",
+      "codehash": "0x1f2960e48417174159bfad3fd827db10260ecfb62615c7173fd0b4285a44dced",
+      "note": "As above; its one immutable is the register verifier."
+    }
+  },
+  "_": "Verifier provenance pin (spec §18b.4, §19 X4). Read back from chain with `cast codehash <addr> --rpc-url https://rpc.testnet.chain.robinhood.com`. DeployDarkTestnet.s.sol refuses to wire a verifier whose address or runtime codehash is not in the entry for block.chainid, and pins the two shared libraries too: a library swapped at its pinned address changes verification without changing the verifier's own codehash. `verifierSolSha256` ties each row back to circuits/manifest.json, and scripts/check-verifier-pins.mjs enforces that tie in CI. Rows without it (the shared libraries, and the vault and registry) are not generated from a circuit; they are pinned so the drift monitor can catch bytecode drift at their addresses."
+}

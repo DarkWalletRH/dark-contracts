@@ -1,0 +1,175 @@
+// Writes a Prover.toml for each of the four circuits, with every point and scalar produced by
+// @darkwalletrh/dark-sdk. That is the whole point: if the SDK's maths and the circuits' maths ever
+// diverge, `nargo execute` fails here rather than in a user's wallet.
+//
+//   npm --prefix ../../packages/dark-sdk ci && npm --prefix ../../packages/dark-sdk run build
+//   npm --prefix . install && node gen_prover.mjs
+//
+// Deterministic: the sk and the hedging randomness are fixed, so re-running reproduces the
+// same Prover.toml byte for byte.
+import { writeFileSync } from 'node:fs';
+import { keccak_256 } from '@noble/hashes/sha3';
+import {
+  G,
+  H,
+  GROUP_N,
+  add,
+  sub,
+  mul,
+  encode,
+  deriveDarkKeys,
+  keysAreConsistent,
+  hedgedScalar,
+  contextBytes,
+  encrypt,
+  decryptToPoint,
+  TAG_TRANSFER_R,
+} from '@darkwalletrh/dark-sdk';
+
+// --- the circuit's copy of H must be the SDK's copy of H (§3, §19 K1/K2) -------------------
+const H_IN_CIRCUIT = {
+  x: 0x1c670f693e0f1e5f2dd00c3fbf55c8e22af4ca3071dee49808899f9aa44d1024n,
+  y: 0x2574095592574b6dedda035b4a88af623685e955658a73e5af0701ee23e282bcn,
+};
+const h = encode(H);
+if (h.x !== H_IN_CIRCUIT.x || h.y !== H_IN_CIRCUIT.y) {
+  throw new Error(
+    `H drift: SDK has (${hex(h.x)}, ${hex(h.y)}), dark_lib has (${hex(H_IN_CIRCUIT.x)}, ${hex(H_IN_CIRCUIT.y)}).` +
+      ' Fix circuits/lib/src/lib.nr and DarkGrumpkin.sol together, or the whole system forks.',
+  );
+}
+
+// --- scenario ------------------------------------------------------------------------------
+const CHAIN_ID = 46630; // Robinhood Chain testnet
+const REGISTRY = '0x00000000000000000000000000000000000000ce';
+const VAULT = '0x00000000000000000000000000000000000000fa';
+const SENDER = '0x000000000000000000000000000000000000beef';
+const RECIPIENT = '0x000000000000000000000000000000000000cafe';
+const WITHDRAW_TO = '0x0000000000000000000000000000000000001234';
+const NONCE = 3n;
+
+const MIN_TRANSFER = 1_000000n; // 1 USDG
+const MAX_TRANSFER = 25_000_000000n; // 25k USDG
+const BALANCE = 500_000000n; // 500 USDG
+const AMOUNT = 120_000000n; // 120 USDG
+const WITHDRAW_AMOUNT = 200_000000n;
+
+const senderSk = new Uint8Array(32).fill(0x11);
+const recipientSk = new Uint8Array(32).fill(0x22);
+const senderKeys = deriveDarkKeys(senderSk, CHAIN_ID);
+const recipientKeys = deriveDarkKeys(recipientSk, CHAIN_ID);
+for (const k of [senderKeys, recipientKeys]) {
+  if (!keysAreConsistent(k)) throw new Error('SDK produced keys with s*P != H');
+}
+
+// The stored `available` ciphertext, as the vault would hold it after deposits.
+const availRho = hedgedScalar(TAG_TRANSFER_R, senderKeys.s, new Uint8Array(8).fill(1), new Uint8Array(32).fill(0xa1));
+const avail = encrypt(BALANCE, [senderKeys.P], availRho);
+
+// Transfer randomness, hedged exactly as the SDK does at send time (§3), with the CSPRNG draw
+// pinned so this file is reproducible.
+const ctx = contextBytes({ chainId: CHAIN_ID, vault: VAULT, from: SENDER, to: RECIPIENT, fromNonce: NONCE });
+const r = hedgedScalar(TAG_TRANSFER_R, senderKeys.s, ctx, new Uint8Array(32).fill(0x5a));
+if (r === 0n || r >= GROUP_N) throw new Error('bad hedged r');
+const ct = encrypt(AMOUNT, [senderKeys.P, recipientKeys.P], r);
+const [ctDs, ctDr] = ct.D;
+
+// The remainder the circuit re-derives: (avail.C - ct.C) - s*(avail.D - ct.D_sender) == w*G.
+const remainder = BALANCE - AMOUNT;
+const wPoint = decryptToPoint(sub(avail.C, ct.C), sub(avail.D[0], ctDs), senderKeys.s);
+if (!wPoint.equals(mul(G, remainder))) throw new Error('remainder does not decrypt to w*G');
+
+// Withdraw: (avail.C - amount*G) - s*avail.D == w*G, over the same stored balance.
+const withdrawRemainder = BALANCE - WITHDRAW_AMOUNT;
+const wwPoint = decryptToPoint(sub(avail.C, mul(G, WITHDRAW_AMOUNT)), avail.D[0], senderKeys.s);
+if (!wwPoint.equals(mul(G, withdrawRemainder))) throw new Error('withdraw remainder mismatch');
+
+// Disclosure: "my balance is in [100, 500] USDG", over the same available ciphertext.
+const DISCLOSE_LO = 100_000000n;
+const DISCLOSE_HI = 500_000000n;
+const contextHash = beToBigint(keccak_256(new TextEncoder().encode('DARK-CB-1/disclose/v1'))) % GROUP_N;
+
+// --- writers -------------------------------------------------------------------------------
+function hex(v) {
+  return `0x${v.toString(16).padStart(64, '0')}`;
+}
+function beToBigint(b) {
+  let v = 0n;
+  for (const byte of b) v = (v << 8n) | BigInt(byte);
+  return v;
+}
+/** A Grumpkin scalar as the 128-bit limb pair Noir's EmbeddedCurveScalar takes. */
+function limbs(s) {
+  if (s <= 0n || s >= GROUP_N) throw new Error(`scalar out of [1, n): ${s}`);
+  return { lo: hex(s & ((1n << 128n) - 1n)), hi: hex(s >> 128n) };
+}
+function addr(a) {
+  return hex(BigInt(a));
+}
+function point(name, p) {
+  const { x, y } = encode(p);
+  return `\n[${name}]\nx = "${hex(x)}"\ny = "${hex(y)}"\n`;
+}
+function scalarLines(name, s) {
+  const { lo, hi } = limbs(s);
+  return `${name}_lo = "${lo}"\n${name}_hi = "${hi}"\n`;
+}
+function write(circuit, body) {
+  const path = new URL(`../${circuit}/Prover.toml`, import.meta.url);
+  writeFileSync(path, `# Generated by circuits/tools/gen_prover.mjs from @darkwalletrh/dark-sdk. Do not hand-edit.\n${body}`);
+  console.log(`wrote ${circuit}/Prover.toml`);
+}
+
+// --- dark_register --------------------------------------------------------------------------
+write(
+  'register',
+  scalarLines('s', senderKeys.s) +
+    `chain_id = "${CHAIN_ID}"\nregistry = "${addr(REGISTRY)}"\naccount = "${addr(SENDER)}"\n` +
+    point('pk', senderKeys.P),
+);
+
+// --- dark_transfer --------------------------------------------------------------------------
+write(
+  'transfer',
+  scalarLines('s', senderKeys.s) +
+    scalarLines('r', r) +
+    `a = "${AMOUNT}"\nw = "${remainder}"\n` +
+    `chain_id = "${CHAIN_ID}"\nvault = "${addr(VAULT)}"\nsender = "${addr(SENDER)}"\n` +
+    `recipient = "${addr(RECIPIENT)}"\nsender_nonce = "${NONCE}"\n` +
+    `min_transfer = "${MIN_TRANSFER}"\nmax_transfer = "${MAX_TRANSFER}"\n` +
+    point('pk_s', senderKeys.P) +
+    point('pk_r', recipientKeys.P) +
+    point('avail_c', avail.C) +
+    point('avail_d', avail.D[0]) +
+    point('ct_c', ct.C) +
+    point('ct_ds', ctDs) +
+    point('ct_dr', ctDr),
+);
+
+// --- dark_withdraw --------------------------------------------------------------------------
+write(
+  'withdraw',
+  scalarLines('s', senderKeys.s) +
+    `w = "${withdrawRemainder}"\n` +
+    `chain_id = "${CHAIN_ID}"\nvault = "${addr(VAULT)}"\naccount = "${addr(SENDER)}"\n` +
+    `to = "${addr(WITHDRAW_TO)}"\nnonce = "${NONCE}"\namount = "${WITHDRAW_AMOUNT}"\n` +
+    point('pk', senderKeys.P) +
+    point('avail_c', avail.C) +
+    point('avail_d', avail.D[0]),
+);
+
+// --- dark_disclose_range ---------------------------------------------------------------------
+write(
+  'disclose_range',
+  scalarLines('s', senderKeys.s) +
+    `v = "${BALANCE}"\ncontext_hash = "${hex(contextHash)}"\n` +
+    `lo = "${DISCLOSE_LO}"\nhi = "${DISCLOSE_HI}"\n` +
+    point('pk', senderKeys.P) +
+    point('c', avail.C) +
+    point('d', avail.D[0]),
+);
+
+// A public amount is (x*G, identity) (§3); the identity encodes as (0,0) on both sides.
+const publicAmount = add(mul(G, 7n), mul(H, 0n));
+if (encode(publicAmount).y === 0n) throw new Error('unexpected identity');
+console.log('H, keys, ciphertexts and remainders all cross-check against the SDK.');

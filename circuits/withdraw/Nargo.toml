@@ -1,0 +1,7 @@
+[package]
+name = "dark_withdraw"
+type = "bin"
+authors = [""]
+
+[dependencies]
+dark_lib = { path = "../lib" }

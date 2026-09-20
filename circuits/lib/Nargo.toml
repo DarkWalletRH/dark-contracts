@@ -1,0 +1,4 @@
+[package]
+name = "dark_lib"
+type = "lib"
+authors = [""]

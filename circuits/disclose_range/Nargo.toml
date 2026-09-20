@@ -1,0 +1,7 @@
+[package]
+name = "dark_disclose_range"
+type = "bin"
+authors = [""]
+
+[dependencies]
+dark_lib = { path = "../lib" }

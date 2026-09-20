@@ -1,0 +1,12 @@
+node_modules/
+contracts/out/
+contracts/out-verify/
+contracts/cache/
+contracts/cache-verify/
+contracts/broadcast/
+circuits/target/
+circuits/*/target/
+circuits/evm/out/
+circuits/evm/out-verify/
+circuits/evm/cache/
+circuits/evm/cache-verify/

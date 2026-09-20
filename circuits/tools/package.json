@@ -1,0 +1,13 @@
+{
+  "name": "dark-circuits-tools",
+  "private": true,
+  "type": "module",
+  "description": "Witness generation and manifest checking for the DARK-CB-1 circuits. Reuses the SDK so the circuits and the SDK cannot drift apart.",
+  "scripts": {
+    "prover": "node gen_prover.mjs",
+    "verify-manifest": "node check-manifest.mjs"
+  },
+  "dependencies": {
+    "@darkwalletrh/dark-sdk": "github:DarkWalletRH/dark-sdk#v0.4.1"
+  }
+}

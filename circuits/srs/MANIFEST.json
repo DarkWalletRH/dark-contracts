@@ -1,0 +1,11 @@
+{
+  "note": "SRS slice for the browser prover. Pinned so bb.js never fetches it at runtime, which would leak the user IP to a third party mid-payment.",
+  "logSize": 16,
+  "numPoints": 131072,
+  "pointBytes": 32,
+  "form": "uncompressed",
+  "g1Bytes": 8388608,
+  "g1Sha256": "3718ffbed583d8a279ccb2545196d5618e3fd97512b65aa051d2ebd0f57fb999",
+  "g2Bytes": 128,
+  "g2Sha256": "01797bfc4de5a96f0e516a9ea4537d18786dc30cb991aca4274c95822b69c32f"
+}

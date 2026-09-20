@@ -1,0 +1,77 @@
+# DARK-CB-1 public-input order -- normative (§6, §19 C1).
+#
+# The canonical order is the one the contracts build inline today:
+# DarkKeyRegistry.register, DarkVault._transferInputs and DarkVault._withdrawInputs.
+# This file is the machine-readable copy, so `DarkPublicInputs.sol`,
+# `packages/dark-sdk/src/publicInputs.ts` and the Noir `main()` signatures can all be
+# generated from or asserted against one list.
+#
+# Encoding (§19 C1): addresses left-padded uint160, everything else a big-endian uint256,
+# each in one bytes32. Points are two entries, x then y. The identity is (0, 0) (§19 X1).
+#
+# `count` is the WIRE public-input count (§19 X2) -- what the verifier call site passes.
+# The VK's `publicInputsSize` is 8 larger: the pairing-point limbs travel inside the proof.
+#
+# circuits/tools/check-manifest.mjs asserts each circuit's compiled ABI matches this list.
+
+spec = "DARK-CB-1"
+
+[dark_register]
+onchain = true
+caller = "DarkKeyRegistry.register(Point,bytes)"
+count = 5
+inputs = ["chain_id", "registry", "account", "pk.x", "pk.y"]
+
+[dark_transfer]
+onchain = true
+caller = "DarkVault._transferInputs"
+count = 21
+inputs = [
+  "chain_id",
+  "vault",
+  "sender",
+  "recipient",
+  "sender_nonce",
+  "pk_s.x",
+  "pk_s.y",
+  "pk_r.x",
+  "pk_r.y",
+  "avail_c.x",
+  "avail_c.y",
+  "avail_d.x",
+  "avail_d.y",
+  "ct_c.x",
+  "ct_c.y",
+  "ct_ds.x",
+  "ct_ds.y",
+  "ct_dr.x",
+  "ct_dr.y",
+  "min_transfer",
+  "max_transfer",
+]
+
+[dark_withdraw]
+onchain = true
+caller = "DarkVault._withdrawInputs"
+count = 12
+inputs = [
+  "chain_id",
+  "vault",
+  "account",
+  "to",
+  "nonce",
+  "pk.x",
+  "pk.y",
+  "avail_c.x",
+  "avail_c.y",
+  "avail_d.x",
+  "avail_d.y",
+  "amount",
+]
+
+# Off-chain only: verified in the browser with bb.js, never deployed (§6).
+[dark_disclose_range]
+onchain = false
+caller = "@darkwalletrh/dark-sdk/disclosure"
+count = 9
+inputs = ["context_hash", "pk.x", "pk.y", "c.x", "c.y", "d.x", "d.y", "lo", "hi"]

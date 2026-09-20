@@ -1,0 +1,50 @@
+# Dark Wallet ZK toolchain pins.
+# This pair is what actually built, proved and verified the spike circuit.
+
+[nargo]
+version = "1.0.0-beta.22"
+install = "noirup --version 1.0.0-beta.22"
+
+[bb]
+version = "5.0.0-nightly.20260522"
+install = "bbup --version 5.0.0-nightly.20260522"
+# Compatible with nargo 1.0.0-beta.22 ACIR: `bb gates` / `prove` / `write_vk` /
+# `write_solidity_verifier` all accept target/dark_spike.json unchanged.
+
+[bb_js]
+# Web prover. Must match the bb above byte-for-byte or the VK differs.
+package = "@aztec/bb.js"
+version = "5.0.0-nightly.20260522"
+install = "npm i @aztec/bb.js@5.0.0-nightly.20260522"
+# note: npm dist-tag `latest` is 5.2.0 and nightlies have moved on to 6.0.0-*;
+# do NOT float. CI asserts one byte-identical VK across bb CLI / bb.js / noir-rs.
+
+[noir_js]
+package = "@noir-lang/noir_js"
+version = "1.0.0-beta.22"
+install = "npm i @noir-lang/noir_js@1.0.0-beta.22"
+
+[noir_rs]
+# Native (mopro) prover. NOT yet verified in this spike.
+# Upstream lags: latest tagged is 1.0.0-beta.19 vs our beta.22 nargo.
+repo = "https://github.com/zkmopro/noir-rs"
+version = "1.0.0-beta.19"
+status = "unverified-at-spike"
+
+# ---- what a toolchain bump must re-check ---------------------------------------
+# Two of our soundness arguments rest on BACKEND behaviour rather than on constraints written in the
+# circuits, so a VK-hash diff alone is not enough to clear a nargo/bb upgrade:
+#
+#  1. Non-canonical scalars. The 128-bit limb checks bound a scalar below 2^256, and the group order
+#     n is ~2^254, so a witness of `s + n` passes them while still being congruent to s. What
+#     actually rejects it is bb's Grumpkin MSM gadget refusing any scalar >= n at witness-solving
+#     time. `dark_register::tests::test_neg_s_plus_n` pins that behaviour. If a future backend
+#     silently reduced mod n instead of failing, the gap would reopen with NO in-circuit constraint
+#     catching it. That test must stay green across every bump.
+#
+#  2. The identity as an operand. `deposit` stores (x*G, identity), and the (0,0) sentinel is not on
+#     the curve, so a deposit-only account's first transfer or withdraw feeds the identity into
+#     `decrypt` as an input rather than as the result of P - P. Noir's beta.22 EmbeddedCurvePoint has
+#     no is_infinite flag, so this is the stdlib's behaviour, not ours.
+#     `test_accepts_a_{transfer,withdraw}_from_a_deposit_only_account` pin it, with the matching
+#     overdraft negatives.

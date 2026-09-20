@@ -1,0 +1,14 @@
+{
+  "name": "dark-contracts-foundry",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "test": "forge test",
+    "diff:grumpkin": "node test/js/diff_grumpkin.mjs"
+  },
+  "devDependencies": {
+    "@noble/curves": "^2.4.0",
+    "@openzeppelin/contracts": "^5.1.0",
+    "forge-std": "github:foundry-rs/forge-std#v1.9.7"
+  }
+}

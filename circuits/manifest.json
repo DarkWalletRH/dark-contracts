@@ -1,0 +1,59 @@
+{
+  "spec": "DARK-CB-1",
+  "nargo": "1.0.0-beta.22",
+  "bb": "5.0.0-nightly.20260522",
+  "circuits": {
+    "dark_register": {
+      "crate": "register",
+      "onchain": true,
+      "acir_sha256": "fca8635eb3f5d9d7428770b365f9c1a6579498c54a1f81b3dce66062a63fe8c7",
+      "vk_sha256": "4ce390c52deb3cdbc1ff5ab1cdf7b2bdbb944f6f55469ec62f68abecd3da9dc0",
+      "gate_count": 3586,
+      "acir_opcodes": 22,
+      "public_input_count": 5,
+      "proof_bytes": 7232,
+      "vk_bytes": 1888,
+      "verifier_sol_bytes": 102143,
+      "verifier_sol_sha256": "8c653518612d5de766ae8ce46f2b7300038427ef6d00d77d42f50d889766c0fa"
+    },
+    "dark_transfer": {
+      "crate": "transfer",
+      "onchain": true,
+      "acir_sha256": "edbf514e4e0c093f5b673cb9cb77f19e83f7c55b3f84f97638c20a74a8eb08c9",
+      "vk_sha256": "053d0d86cc79c8369d39da265fa73441d148837f8db92d1fa7c4e8cb2f9073af",
+      "gate_count": 7724,
+      "acir_opcodes": 126,
+      "public_input_count": 21,
+      "proof_bytes": 7616,
+      "vk_bytes": 1888,
+      "verifier_sol_bytes": 102143,
+      "verifier_sol_sha256": "49b49c656a8a5f401de9573eb73b153cf6d69b8f6f45ecec9559ee5ab327862d"
+    },
+    "dark_withdraw": {
+      "crate": "withdraw",
+      "onchain": true,
+      "acir_sha256": "cc617e26f2e054577b95e8ddc6c9f4f4f25962cd160fcceb252efad9fc92ebd5",
+      "vk_sha256": "8a2bbd06a97f8b885083e7dbb1b62150f7d086af2fcf3e52baa4faf93f09cf8c",
+      "gate_count": 5767,
+      "acir_opcodes": 85,
+      "public_input_count": 12,
+      "proof_bytes": 7616,
+      "vk_bytes": 1888,
+      "verifier_sol_bytes": 102143,
+      "verifier_sol_sha256": "f5e72410893fd229f45f122e0c8a6980bcb242ec17da3a7c87c42a0d068c614d"
+    },
+    "dark_disclose_range": {
+      "crate": "disclose_range",
+      "onchain": false,
+      "acir_sha256": "e3f0b4e1a75e99c707298214604a3ec2d76889c3d5a157ef1492c8a87b15245f",
+      "vk_sha256": "66b2d395d42daebfc4b2a4fa5da65b875736d2994cc4fef9a3476e27edccdb43",
+      "gate_count": 5112,
+      "acir_opcodes": 77,
+      "public_input_count": 9,
+      "proof_bytes": 7616,
+      "vk_bytes": 1888,
+      "verifier_sol_bytes": null,
+      "verifier_sol_sha256": null
+    }
+  }
+}
