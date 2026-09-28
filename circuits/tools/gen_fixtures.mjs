@@ -14,8 +14,11 @@
 // itself and proves the pinned codehashes from it; treat that script as the recipe, and this as the
 // fixture generator it says it is.
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
-const ROOT = new URL('..', import.meta.url).pathname.replace(/\/$/, '');
+// fileURLToPath, not .pathname: a checkout under a directory with a space gets back "%20", which
+// readFileSync then takes literally (2026-09-20).
+const ROOT = fileURLToPath(new URL('..', import.meta.url)).replace(/\/$/, '');
 const CRATES = ['register', 'transfer', 'withdraw'];
 
 rmSync(`${ROOT}/evm/src`, { recursive: true, force: true });

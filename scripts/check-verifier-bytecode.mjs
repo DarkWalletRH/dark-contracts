@@ -32,21 +32,36 @@
 //      filled at deployment. Foundry lists their slots under `immutableReferences`; the values are
 //      computed from the source constants, not read from the chain, so nothing here is circular.
 import { execFileSync } from 'node:child_process';
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { existsSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { LIBRARIES, SOURCES, makeProject } from './lib/verifier-recipe.mjs';
 
 // fileURLToPath, not .pathname: the checkout may live under a directory with a space, and .pathname
 // hands back "%20", which readFileSync takes literally.
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
-const CIRCUITS = join(ROOT, 'circuits');
-const pins = JSON.parse(readFileSync(join(ROOT, 'contracts/deployments/verifier-codehashes.json'), 'utf8'));
+// PIN_FILE: check a dry run's pins (scripts/deploy-verifiers.mjs --pin-file) before they are committed.
+const pins = JSON.parse(readFileSync(process.env.PIN_FILE ?? join(ROOT, 'contracts/deployments/verifier-codehashes.json'), 'utf8'));
 
-/** Pinned verifier name -> the crate whose bb output it was generated from. */
-const SOURCES = { DarkRegisterVerifier: 'register', DarkTransferVerifier: 'transfer', DarkWithdrawVerifier: 'withdraw' };
-/** The two shared libraries, deployed once and linked into all three verifiers. */
-const LIBRARIES = ['RelationsLib', 'ZKTranscriptLib'];
+
+
+/**
+ * The two application contracts, compiled under contracts/foundry.toml (a different profile from the
+ * verifiers: solc 0.8.28, runs 1000, via-IR). Their constructor arguments become immutables, exactly
+ * like the verifiers' — so the same technique reproduces them, with the values taken from the SDK's
+ * deployment record rather than read back from the chain, which would be circular.
+ */
+const APP_CONTRACTS = {
+  DarkVault: {
+    file: 'DarkVault.sol',
+    // Declaration order is astId order, and every one of these is read at runtime.
+    immutables: (d) => [d.usdg, d.registry, d.verifiers.transfer, d.verifiers.withdraw],
+  },
+  DarkKeyRegistry: {
+    file: 'DarkKeyRegistry.sol',
+    immutables: (d) => [d.verifiers.register],
+  },
+};
 
 /**
  * How `BaseZKHonkVerifier`'s constructor derives each immutable from the source constants, in
@@ -70,15 +85,9 @@ const same = (a, b) => a.toLowerCase() === b.toLowerCase();
 
 let failures = 0;
 const fail = (m) => { console.error(`  FAIL ${m}`); failures++; };
-const ok = (m) => console.log(`  ok   ${m}`);
+let passed = 0;
+const ok = (m) => { console.log(`  ok   ${m}`); passed++; };
 
-/** The deploy-time source: bb's output with only the contract line renamed (see note 1). */
-function deployTimeSource(crate) {
-  const bbOutput = readFileSync(join(CIRCUITS, 'verifiers', crate, 'Verifier.sol'), 'utf8');
-  const renamed = bbOutput.replace(/^contract HonkVerifier is /m, `contract HonkVerifier_${crate} is `);
-  if (renamed === bbOutput) throw new Error(`${crate}: could not find 'contract HonkVerifier is' to rename`);
-  return renamed;
-}
 
 /**
  * Evaluate a `constant NAME = <expr>;` from a Solidity source, resolving other constants
@@ -106,14 +115,32 @@ function constantsOf(source) {
 /** Immutable declarations of the base contract, in source order. */
 const declaredImmutables = (source) => [...source.matchAll(/^\s*uint256\s+internal\s+immutable\s+(\$\w+);/gm)].map((m) => m[1]);
 
-/** A throwaway Foundry project with the committed profile and the deploy-time sources. */
-function makeProject() {
-  const dir = mkdtempSync(join(tmpdir(), 'dark-verifier-check-'));
-  copyFileSync(join(CIRCUITS, 'foundry.toml'), join(dir, 'foundry.toml'));
-  mkdirSync(join(dir, 'evm', 'src'), { recursive: true });
-  for (const crate of Object.values(SOURCES)) writeFileSync(join(dir, 'evm', 'src', `${crate}.sol`), deployTimeSource(crate));
-  return dir;
+/**
+ * The testnet deployment, read out of contracts/deployments/deployments.ts by regex. Every field is
+ * required: a missing one would otherwise silently become `undefined` and be padded to a zero
+ * address, which would fail the hash comparison confusingly rather than saying what is wrong.
+ */
+function deploymentOf(key) {
+  const src = readFileSync(join(ROOT, 'contracts/deployments/deployments.ts'), 'utf8');
+  const block = (src.split(`[${key}]`)[1] ?? '').split('\n  },')[0];
+  const field = (name, scope = block) => {
+    const m = scope.match(new RegExp(`${name}:\\s*'(0x[0-9a-fA-F]{40})'`));
+    if (!m) throw new Error(`deployments.ts: no ${name} for ${key}`);
+    return m[1];
+  };
+  const verifiersBlock = block.split('verifiers:')[1]?.split('}')[0] ?? '';
+  return {
+    vault: field('vault'),
+    registry: field('registry'),
+    usdg: field('usdg'),
+    verifiers: {
+      register: field('register', verifiersBlock),
+      transfer: field('transfer', verifiersBlock),
+      withdraw: field('withdraw', verifiersBlock),
+    },
+  };
 }
+
 
 /** `forge build` in the project, into its own out dir, with optional --libraries flags. */
 function build(project, outName, libFlags = []) {
@@ -212,9 +239,66 @@ try {
   rmSync(project, { recursive: true, force: true });
 }
 
+
+// --- the vault and registry: a different profile, same immutable technique -------------------------
+{
+  // Parsed from the committed source, not imported from dist/: the circuits CI job has foundry but
+  // no node_modules and no built SDK (the same reason this file hashes with `cast`). Reading the
+  // source is also the better oracle — it is what a reviewer sees.
+  const contractsDir = join(ROOT, 'contracts');
+  // Fail, never skip: the vault and registry need contracts/node_modules (OpenZeppelin, forge-std),
+  // and a check that quietly does nothing when its dependencies are missing is worse than no check.
+  if (!existsSync(join(contractsDir, 'node_modules'))) {
+    fail('contracts/node_modules is missing, so the vault and registry cannot be rebuilt — run `npm ci` in contracts/');
+    console.log('\n[check-verifier-bytecode] 1 FAILED');
+    process.exit(1);
+  }
+  console.log('application contracts (contracts/foundry.toml) — forge build --force…');
+  execFileSync('forge', ['build', '--force'], {
+    cwd: contractsDir,
+    env: { ...process.env, FOUNDRY_OUT: 'out-verify', FOUNDRY_CACHE_PATH: 'cache-verify' },
+    stdio: ['ignore', 'ignore', 'inherit'],
+  });
+  // Every chain that has a vault pinned (this used to rebuild the testnet vault only).
+  const SDK_KEY = { 46630: 'CHAIN_ID_TESTNET', 4663: 'CHAIN_ID_MAINNET' };
+  for (const [CHAIN, chainPins] of Object.entries(pins)) {
+  if (CHAIN === '_' || !chainPins.DarkVault) continue;
+  if (!SDK_KEY[CHAIN]) { fail(`chain ${CHAIN}: vault pinned but no SDK block to read its immutables from`); continue; }
+  console.log(`chain ${CHAIN} — application contracts`);
+  const d = deploymentOf(SDK_KEY[CHAIN]);
+  for (const [name, spec] of Object.entries(APP_CONTRACTS)) {
+    const pin = chainPins[name];
+    if (!pin) { fail(`${name}: not pinned for chain ${CHAIN}`); continue; }
+    // The SDK's record must agree with the pin file before either is used as an oracle.
+    const sdkAddress = name === 'DarkVault' ? d.vault : d.registry;
+    if (!same(sdkAddress, pin.address)) { fail(`${name}: SDK says ${sdkAddress}, pin file says ${pin.address}`); continue; }
+    const artPath = join(contractsDir, 'out-verify', spec.file, `${name}.json`);
+    if (!existsSync(artPath)) { fail(`${name}: no artifact at ${artPath}`); continue; }
+    const deployed = JSON.parse(readFileSync(artPath, 'utf8')).deployedBytecode;
+    const groups = Object.entries(deployed.immutableReferences ?? {}).sort(([a], [b]) => Number(a) - Number(b));
+    const values = spec.immutables(d);
+    if (groups.length !== values.length) { fail(`${name}: ${groups.length} immutable groups, ${values.length} constructor values — the constructor changed`); continue; }
+    let code = deployed.object.replace(/^0x/, '');
+    let bad = false;
+    for (const [i, [, positions]] of groups.entries()) {
+      for (const { start, length } of positions) {
+        if (length !== 32) { fail(`${name}: immutable slot length ${length} ≠ 32`); bad = true; break; }
+        code = code.slice(0, start * 2) + values[i].replace(/^0x/, '').toLowerCase().padStart(64, '0') + code.slice((start + length) * 2);
+      }
+      if (bad) break;
+    }
+    if (bad) continue;
+    const got = keccak(code);
+    same(got, pin.codehash)
+      ? ok(`${name}: rebuilt with its immutables from the SDK deployment — matches its pin byte-for-byte`)
+      : fail(`${name}: rebuilt ${got.slice(0, 18)}… ≠ pinned ${pin.codehash.slice(0, 18)}… — profile, source or a constructor argument has drifted from the chain`);
+  }
+  }
+}
+
 console.log(
   failures === 0
-    ? '\n[check-verifier-bytecode] every pinned verifier and library is reproducible from this commit, with the pinned libraries linked in (the vault and registry rows are pinned for drift detection and are not rebuilt here)'
+    ? `\n[check-verifier-bytecode] ${passed} pinned contracts across chains ${Object.keys(pins).filter((k) => k !== '_').join(', ')} are reproducible from this commit: the verifiers with their libraries linked in, the vault and registry with their constructor immutables`
     : `\n[check-verifier-bytecode] ${failures} FAILED`,
 );
 process.exit(failures === 0 ? 0 : 1);

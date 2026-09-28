@@ -10,8 +10,11 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const ROOT = new URL('..', import.meta.url).pathname.replace(/\/$/, '');
+// fileURLToPath, not .pathname: a checkout under a directory with a space gets back "%20", which
+// readFileSync then takes literally (2026-09-20).
+const ROOT = fileURLToPath(new URL('..', import.meta.url)).replace(/\/$/, '');
 const NARGO = join(homedir(), '.nargo/bin/nargo');
 const BB = join(homedir(), '.bb/bb');
 

@@ -1,4 +1,37 @@
 {
+  "4663": {
+    "RelationsLib": {
+      "address": "0x43804a423f7Da1297C91C47Fc959DBe937788e4c",
+      "codehash": "0xa623b52533414360b13ee2fdb97c84a9d4230ac4614d069c42fdb8887aa034f8"
+    },
+    "ZKTranscriptLib": {
+      "address": "0x97dB97Eec8d722a5C48F0Fb1612D1DC160A7c085",
+      "codehash": "0xa663147e9b372f8b82577734c7f5d6332ef7bfe073e57e41aeaaadadaa421e16"
+    },
+    "DarkRegisterVerifier": {
+      "address": "0xAf2332Ef3910A9328418b4963BA0E50b9d5846Fe",
+      "codehash": "0xbf530ff38bdaae37b3334910715e4c3e27c4e291d70b50e2a254b81748bb19e1",
+      "verifierSolSha256": "8c653518612d5de766ae8ce46f2b7300038427ef6d00d77d42f50d889766c0fa"
+    },
+    "DarkTransferVerifier": {
+      "address": "0x0905e66f00Bd3261A8E32Dc4b6Cb060a6B8A8f74",
+      "codehash": "0x383f3f4ee4683de29722d7b606d0b29cc5133307007af4d8967d2d70a784bb93",
+      "verifierSolSha256": "49b49c656a8a5f401de9573eb73b153cf6d69b8f6f45ecec9559ee5ab327862d"
+    },
+    "DarkWithdrawVerifier": {
+      "address": "0xaa921526C05b2F11204525D28A81391d91C4258a",
+      "codehash": "0x7f19abe4f16fc70d7be6c95b10b89c8a525d67204cf3463a656b0c0f82f7f10d",
+      "verifierSolSha256": "f5e72410893fd229f45f122e0c8a6980bcb242ec17da3a7c87c42a0d068c614d"
+    },
+    "DarkVault": {
+      "address": "0xeD7a0c6899a6AC94Aea7A5b2F8f24a948042DA9C",
+      "codehash": "0xa27e73b5feda998455d67402db685cd4cd635364b61e9dc4b340bee0d89d5971"
+    },
+    "DarkKeyRegistry": {
+      "address": "0x2E245135FD561965CC546c14C23C9162f36d9C87",
+      "codehash": "0x83c1f0295908541be63c7f018112a46e51757456d190bda899282b905ac2dedd"
+    }
+  },
   "46630": {
     "DarkRegisterVerifier": {
       "address": "0x97dB97Eec8d722a5C48F0Fb1612D1DC160A7c085",

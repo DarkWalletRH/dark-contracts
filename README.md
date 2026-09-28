@@ -10,7 +10,7 @@
 [![Solidity 0.8.28](https://img.shields.io/badge/solidity-0.8.28-363636?style=flat-square&logo=solidity&logoColor=white)](contracts/foundry.toml)
 [![Noir 1.0.0-beta.22](https://img.shields.io/badge/noir-1.0.0--beta.22-7b61ff?style=flat-square)](circuits/VERSIONS.toml)
 [![Barretenberg 5.0](https://img.shields.io/badge/barretenberg-5.0-1f6feb?style=flat-square)](circuits/VERSIONS.toml)
-[![Network: testnet](https://img.shields.io/badge/network-testnet%2046630-f5a0c4?style=flat-square)](#deployed-contracts)
+[![CI](https://img.shields.io/github/actions/workflow/status/DarkWalletRH/dark-contracts/ci.yml?branch=main&style=flat-square&label=CI)](.github/workflows/ci.yml)
 [![Status: pre-audit](https://img.shields.io/badge/status-pre--audit-orange?style=flat-square)](#status)
 
 [Website](https://darkwallet.cash) · [Whitepaper](https://darkwallet.cash/whitepaper) · [Docs](https://darkwallet.cash/docs) · [SDK](https://github.com/DarkWalletRH/dark-sdk) · [Exit tool](https://github.com/DarkWalletRH/dark-exit) · [Starter template](https://github.com/DarkWalletRH/Darkwallet)
@@ -26,11 +26,6 @@ Grumpkin curve; a private transfer moves value between two ciphertexts without r
 and a zero-knowledge proof shows the sender had it. Deposits and withdrawals are ordinary public token
 transfers. There is no pool and no anonymity set: Dark hides *how much*, never *who*.
 
-This release, **v0.9.0**, is the reviewed and hardened deployment on the Robinhood Chain **testnet**
-of 2026-09-20. Among the hardening changes, `applyPending` accepts a lower bound on the pending-transfer
-count instead of an exact match, so an incoming transfer that lands between the read and the
-transaction can no longer make it revert.
-
 This repository is everything that runs on chain or is proved off chain:
 
 | Part | What it does |
@@ -38,7 +33,6 @@ This repository is everything that runs on chain or is proved off chain:
 | **`DarkVault`** | Holds the USDG. `deposit`, `applyPending`, `transfer` (private), `withdraw`. Caps with immutable hard ceilings, a guardian that can only pause and tighten caps, an owner that acts only through a 48-hour timelock. No proxy, no `delegatecall`, no upgrade path. |
 | **`DarkKeyRegistry`** | Maps an account to its Grumpkin public key, proven with `dark_register`. Immutable, no owner, never pausable. |
 | **`DarkGrumpkin`** | Clean-room Grumpkin arithmetic (`y² = x³ − 17` over F_r): on-curve and canonical checks, add, neg, sub, `mulG`. Differentially tested against `@noble/curves`. |
-| **`MockUSDG`** | The testnet stand-in for USDG: 6 decimals, public `mint`. It has no value. |
 | **Circuits** (`circuits/`) | `dark_register`, `dark_transfer`, `dark_withdraw` and `dark_disclose_range`, written in Noir. UltraHonk, keccak transcript, ZK on. |
 | **Verifiers** | `bb`-generated Solidity verifiers for the three on-chain circuits, plus the two shared libraries they link. |
 
@@ -48,65 +42,62 @@ This repository is everything that runs on chain or is proved off chain:
 
 ## Deployed contracts
 
-### Robinhood Chain testnet — chain id `46630`
+### Robinhood Chain mainnet — chain id `4663`
 
 | Contract | Address |
 |---|---|
-| `DarkVault` | [`0x14fa77C25357C1Dc7de0DD7F36e0EbE807110aB7`](https://explorer.testnet.chain.robinhood.com/address/0x14fa77C25357C1Dc7de0DD7F36e0EbE807110aB7) |
-| `DarkKeyRegistry` | [`0x850907E912c5F89B233252E3633BEfaBe66232B2`](https://explorer.testnet.chain.robinhood.com/address/0x850907E912c5F89B233252E3633BEfaBe66232B2) |
-| `DarkTimelock` (owner, 48 h) | [`0x4522d92128219FE0F3DcFf17324617881C3f7D05`](https://explorer.testnet.chain.robinhood.com/address/0x4522d92128219FE0F3DcFf17324617881C3f7D05) |
-| `DarkRegisterVerifier` | [`0x97dB97Eec8d722a5C48F0Fb1612D1DC160A7c085`](https://explorer.testnet.chain.robinhood.com/address/0x97dB97Eec8d722a5C48F0Fb1612D1DC160A7c085) |
-| `DarkTransferVerifier` | [`0xAf2332Ef3910A9328418b4963BA0E50b9d5846Fe`](https://explorer.testnet.chain.robinhood.com/address/0xAf2332Ef3910A9328418b4963BA0E50b9d5846Fe) |
-| `DarkWithdrawVerifier` | [`0x0905e66f00Bd3261A8E32Dc4b6Cb060a6B8A8f74`](https://explorer.testnet.chain.robinhood.com/address/0x0905e66f00Bd3261A8E32Dc4b6Cb060a6B8A8f74) |
-| `RelationsLib` / `ZKTranscriptLib` | `0xb771CCeda9eABf17A0E26A1109bb36fb6ea8eE79` / `0x43804a423f7Da1297C91C47Fc959DBe937788e4c` |
-| `MockUSDG` | [`0x77FfdE2D07f08f847944B6951dDd9243ae5EE950`](https://explorer.testnet.chain.robinhood.com/address/0x77FfdE2D07f08f847944B6951dDd9243ae5EE950) |
+| `DarkVault` | [`0xeD7a0c6899a6AC94Aea7A5b2F8f24a948042DA9C`](https://robinhoodchain.blockscout.com/address/0xeD7a0c6899a6AC94Aea7A5b2F8f24a948042DA9C) |
+| `DarkKeyRegistry` | [`0x2E245135FD561965CC546c14C23C9162f36d9C87`](https://robinhoodchain.blockscout.com/address/0x2E245135FD561965CC546c14C23C9162f36d9C87) |
+| `DarkTimelock` (owner, 48 h) | [`0xADbF7E3cf5418BeAC10BcDD3BBD9a51dc19EBC54`](https://robinhoodchain.blockscout.com/address/0xADbF7E3cf5418BeAC10BcDD3BBD9a51dc19EBC54) |
+| Owner Safe (2-of-3) | `0xD1A9F36662561844e6d0B3e9f4cf908695e72305` |
+| Guardian Safe (1-of-2) | `0x87879CbAfC1E92528b950444E693D3b2F07CB1d7` |
+| `DarkRegisterVerifier` | [`0xAf2332Ef3910A9328418b4963BA0E50b9d5846Fe`](https://robinhoodchain.blockscout.com/address/0xAf2332Ef3910A9328418b4963BA0E50b9d5846Fe) |
+| `DarkTransferVerifier` | [`0x0905e66f00Bd3261A8E32Dc4b6Cb060a6B8A8f74`](https://robinhoodchain.blockscout.com/address/0x0905e66f00Bd3261A8E32Dc4b6Cb060a6B8A8f74) |
+| `DarkWithdrawVerifier` | [`0xaa921526C05b2F11204525D28A81391d91C4258a`](https://robinhoodchain.blockscout.com/address/0xaa921526C05b2F11204525D28A81391d91C4258a) |
+| `RelationsLib` / `ZKTranscriptLib` | `0x43804a423f7Da1297C91C47Fc959DBe937788e4c` / `0x97dB97Eec8d722a5C48F0Fb1612D1DC160A7c085` |
+| USDG | `0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168` |
 
-Deployed at block `122104964` (2026-09-20). RPC: `https://rpc.testnet.chain.robinhood.com`. The vault's
-owner is `DarkTimelock`. On this testnet deployment the guardian, and the holder of the timelock's
-proposer, executor and canceller roles, is the deployer's externally owned account; no multisig is
-involved (`guardian()` on the vault returns it). This release has no mainnet deployment.
-
-The record of these addresses is `contracts/deployments/deployments.ts`. The vault, the registry, the
-three verifiers and their two libraries are pinned with their runtime codehashes in
+Deployed at block `75151289` (2026-09-28). The owner Safe holds the timelock's proposer, executor and canceller roles; the timelock is the vault's owner. The vault, the registry, the three verifiers and
+their two libraries are pinned with their runtime codehashes in
 `contracts/deployments/verifier-codehashes.json`.
 
-**Testnet caps** sit at the vault's immutable hard ceilings (USDG): min deposit 0.000001 · max deposit
-2,500 · max inflow per account 10,000 · min transfer 0.01 · max transfer 2,500 · total value locked
-250,000.
+The testnet deployment (chain id `46630`: `MockUSDG`, caps at the hard ceilings) is recorded in
+`contracts/deployments/deployments.ts`.
+
+**Launch caps** (USDG): min deposit 1 · max deposit 1,000 · max inflow per account 2,500 · min transfer
+0.01 · max transfer 1,000 · total value locked 50,000. The vault's immutable hard ceilings are 2,500
+(deposit) · 10,000 (inflow per account) · 2,500 (transfer) · 250,000 (total value locked). Raising a
+cap goes through the timelock; lowering one is instant for the guardian.
 
 ## Reproduce the deployed bytecode
 
-The verifiers do not have to be taken on trust. One command rebuilds the three verifiers and their two
-libraries the way they were deployed — same compiler profile, same source, same linked library
-addresses, same immutables — and compares the runtime bytecode's keccak with the pinned on-chain
-codehash. It needs [Foundry](https://book.getfoundry.sh) (`forge` and `cast`) and Node.js 22, and
-nothing from npm:
+Nothing above has to be taken on trust. One command rebuilds every deployed contract the way it was
+deployed — same compiler profile, same source, same linked library addresses, same constructor
+immutables — and compares the runtime bytecode's keccak with the pinned on-chain codehash. It needs
+[Foundry](https://book.getfoundry.sh) (`forge` and `cast`) and Node.js 22:
 
 ```bash
+cd contracts && npm ci && cd ..
 node scripts/check-verifier-bytecode.mjs
 ```
 
-Expected: five `ok` lines for chain `46630` (`RelationsLib`, `ZKTranscriptLib` and the three
-verifiers), each ending in *matches its pin*. In this release the vault and registry rows of the pin
-file are not rebuilt by the script: they are pinned so that any change of code at their addresses is
-detected. Compare them with the chain directly:
-
-```bash
-cast codehash 0x14fa77C25357C1Dc7de0DD7F36e0EbE807110aB7 --rpc-url https://rpc.testnet.chain.robinhood.com
-```
+Expected: fourteen `ok` lines (seven contracts on each chain), each ending in *matches its pin*, and a
+summary line that names both chains. The pins live in `contracts/deployments/verifier-codehashes.json`;
+read them back from chain with `cast codehash <address> --rpc-url https://rpc.mainnet.chain.robinhood.com`.
 
 `scripts/check-verifier-pins.mjs` ties each verifier to the circuit it was generated from: the SHA-256
 of `circuits/verifiers/<circuit>/Verifier.sol` must equal the one recorded in `circuits/manifest.json`,
-which in turn records the ACIR hash, the verification key and the gate count of each circuit. Expected:
-seven `ok` lines for chain `46630`. Both checks run in CI.
+which in turn records the ACIR hash, the verification key and the gate count of each circuit. Both
+checks run in CI on every push to `main` and on every pull request (see the CI badge).
 
 ## Trust model
 
 | Who | Can | Cannot |
 |---|---|---|
 | **Anyone** | deposit, transfer privately, withdraw, register a key, leave at any time | read another account's balance or a transfer's amount |
-| **Guardian** (the deployer's account on this testnet) | `pause()` deposits and transfers; tighten caps instantly | unpause, raise caps, move funds, change the verifiers |
-| **Owner** (`DarkTimelock`, 48 h) | unpause, raise caps up to the hard ceilings, replace the guardian, recover tokens other than USDG, hand ownership on (two-step) | exceed the hard ceilings, touch USDG, change the registry, token or verifiers, renounce ownership, upgrade anything |
+| **Guardian** (Safe, 1-of-2) | `pause()` deposits and transfers; tighten caps instantly | unpause, raise caps, move funds, change the verifiers |
+| **Owner** (Safe, 2-of-3, through a 48 h timelock) | unpause, raise caps up to the hard ceilings, replace the guardian, recover tokens other than USDG, hand ownership on (two-step) | exceed the hard ceilings, touch USDG, change the registry, token or verifiers, renounce ownership, upgrade anything |
+| **Deployer** | nothing after deployment | — |
 
 The registry, token, verifiers and hard ceilings are immutables set in the constructor. Every scheduled
 owner action is visible on the timelock for 48 hours before it can execute.
@@ -116,7 +107,7 @@ owner action is visible on the timelock for 48 hours before it can execute.
 ```
 contracts/
   src/                 DarkVault, DarkKeyRegistry, DarkGrumpkin, interfaces, MockUSDG (testnet)
-  script/              DeployDarkTestnet.s.sol, the mutation runner
+  script/              DeployDarkMainnet.s.sol, DeployDarkTestnet.s.sol, the mutation runner
   test/                unit, boundary, deploy-script, differential (Grumpkin vs @noble/curves) and invariant tests
   deployments/         deployments.ts (the deployment record) + verifier-codehashes.json (the pins)
   foundry.toml         solc 0.8.28 · cancun · via-IR · 1000 runs
@@ -132,7 +123,8 @@ circuits/
   VERSIONS.toml        the exact nargo / bb versions
 scripts/
   check-verifier-pins.mjs       verifier ↔ circuit tie
-  check-verifier-bytecode.mjs   deployed verifier bytecode ↔ this source
+  check-verifier-bytecode.mjs   deployed bytecode ↔ this source
+  lib/verifier-recipe.mjs       the verifier build recipe the bytecode check replays
 ```
 
 ## Build and test
@@ -167,8 +159,9 @@ forge test                          # the generated verifiers, driven with real 
 
 ## Status
 
-Pre-audit, testnet only. The contracts, circuits and verifiers in this release are what is deployed
-on chain `46630`. `MockUSDG` has no value; do not send real assets to these addresses.
+Pre-audit. The contracts, circuits and verifiers in this repository are byte-for-byte what is deployed
+on mainnet, under launch caps. Do not rely on them to secure funds you cannot afford to lose. The beta
+notice shown in the wallet reads from the same deployment record.
 
 ## Security
 
@@ -181,6 +174,6 @@ amount, is in scope. See
 ## License
 
 Licensed under either of [MIT](LICENSE-MIT) or [Apache-2.0](LICENSE-APACHE), at your option. The
-contracts, circuits and deployment record carry an `MIT OR Apache-2.0` SPDX header; the deploy script
+contracts, circuits and deployment record carry an `MIT OR Apache-2.0` SPDX header; the deploy scripts
 and Solidity tests are MIT. The `bb`-generated verifiers, and the tests that drive them, are
 Apache-2.0 as generated.

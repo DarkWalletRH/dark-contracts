@@ -4,3 +4,6 @@ cache/
 broadcast/
 .mutants/
 broadcast/
+# scripts/check-verifier-bytecode.mjs builds here so it never disturbs forge test's cache.
+out-verify/
+cache-verify/
