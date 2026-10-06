@@ -1,4 +1,4 @@
-// rebuild the live verifiers from this commit and prove the pinned bytecode.
+// Rebuild the live verifiers from this commit and prove the pinned bytecode.
 //
 //   node scripts/check-verifier-bytecode.mjs      (npm run check:verifier-bytecode; needs forge + cast)
 //

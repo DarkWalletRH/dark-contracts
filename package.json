@@ -1,0 +1,44 @@
+{
+  "name": "@darkwalletrh/dark-contracts",
+  "version": "1.0.1",
+  "description": "ABIs, deployed addresses, bytecode pins and Solidity sources of the Dark contracts on Robinhood Chain.",
+  "keywords": [
+    "dark",
+    "robinhood-chain",
+    "abi",
+    "solidity",
+    "zero-knowledge",
+    "noir",
+    "confidential-transfers"
+  ],
+  "homepage": "https://darkwallet.cash",
+  "bugs": {
+    "url": "https://github.com/DarkWalletRH/dark-contracts/issues",
+    "email": "team@darkwallet.cash"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DarkWalletRH/dark-contracts.git"
+  },
+  "license": "MIT OR Apache-2.0",
+  "author": "Dark <team@darkwallet.cash>",
+  "type": "module",
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "sideEffects": false,
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "abi/",
+    "contracts/src/",
+    "contracts/deployments/",
+    "LICENSE-MIT",
+    "LICENSE-APACHE"
+  ],
+  "scripts": {
+    "build:abi": "node scripts/build-abi.mjs",
+    "check:abi": "node scripts/build-abi.mjs --check",
+    "check:verifier-pins": "node scripts/check-verifier-pins.mjs",
+    "check:verifier-bytecode": "node scripts/check-verifier-bytecode.mjs"
+  }
+}

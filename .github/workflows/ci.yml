@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      # foundry.toml has libs = ["node_modules"]: forge-std and OpenZeppelin come from npm.
+      - run: npm ci
+        working-directory: contracts
+      - uses: foundry-rs/foundry-toolchain@v1
+      - run: forge test --root contracts
+      - name: every pinned verifier matches the circuit it was generated from
+        run: node scripts/check-verifier-pins.mjs
+      # Rebuilds every deployed contract the way it was deployed and requires the pinned runtime
+      # codehash back, byte-for-byte: profile, source, linked library addresses and immutables.
+      - name: deployed bytecode reproduces from this commit
+        run: node scripts/check-verifier-bytecode.mjs
+      # abi/, index.js and index.d.ts are generated from the contracts and the deployment record.
+      - name: npm package contents match the sources
+        if: hashFiles('scripts/build-abi.mjs') != ''
+        run: node scripts/build-abi.mjs --check
+
+  circuits:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Cache the pinned toolchain and the bb CRS
+        id: toolchain
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.nargo
+            ~/.bb
+            ~/.bb-crs
+          key: noir-bb-${{ runner.os }}-${{ hashFiles('circuits/VERSIONS.toml') }}
+      - name: Install nargo + bb at the circuits/VERSIONS.toml pins
+        if: steps.toolchain.outputs.cache-hit != 'true'
+        run: |
+          # Installers pinned to a commit, so an upstream change cannot alter what CI runs.
+          curl -sL https://raw.githubusercontent.com/noir-lang/noirup/bedac8fbe6a059177c35e565f9f76db54a795976/install | bash
+          curl -sL https://raw.githubusercontent.com/AztecProtocol/aztec-packages/073ea66ad92c53ebbf7be70d28973a68a8628942/barretenberg/bbup/install | bash
+          export PATH="$HOME/.nargo/bin:$HOME/.bb:$PATH"
+          noirup --version 1.0.0-beta.22
+          bbup --version 5.0.0-nightly.20260522
+      - name: Put the toolchain on PATH
+        run: |
+          echo "$HOME/.nargo/bin" >> "$GITHUB_PATH"
+          echo "$HOME/.bb" >> "$GITHUB_PATH"
+      - run: nargo --version && bb --version
+      - name: nargo test
+        working-directory: circuits
+        run: nargo test --workspace
+      # Recompiles every circuit and recomputes ACIR hashes, VKs and gate counts; fails if
+      # manifest.json no longer describes what the source compiles to.
+      - name: manifest.json still reproduces
+        run: node circuits/tools/check-manifest.mjs
+      - name: dark_disclose_range binds all of its public inputs
+        run: node circuits/tools/flip-public-inputs.mjs
+      - uses: foundry-rs/foundry-toolchain@v1
+      - name: forge test (generated verifiers)
+        run: forge test --root circuits

@@ -7,7 +7,7 @@
 // project. verifiers/ stays byte-identical to bb's output; evm/src/ is a throwaway rename so the
 // three can be measured side by side.
 //
-// NOT the deploy recipe. The verifiers live on 46630 were compiled from
+// NOT the deploy recipe (2026-09-20). The verifiers live on 46630 were compiled from
 // evm/src/<crate>.sol copies with ONLY the contract line renamed — not the every-declaration rename
 // this tool performs — and that content is inside the metadata hash, so what this writes does not
 // reproduce the chain. scripts/check-verifier-bytecode.mjs regenerates the deploy-time source

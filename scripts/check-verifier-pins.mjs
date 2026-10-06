@@ -1,4 +1,4 @@
-// tie contracts/deployments/verifier-codehashes.json back to circuits/manifest.json.
+// Tie contracts/deployments/verifier-codehashes.json back to circuits/manifest.json.
 //
 //   node scripts/check-verifier-pins.mjs   (npm run check:verifier-pins)
 //
@@ -39,7 +39,7 @@ const VERIFIER_TO_CIRCUIT = {
 const NOT_CIRCUIT_GENERATED = new Set([
   'RelationsLib',
   'ZKTranscriptLib',
-  // the vault and registry are pinned here too, so the drift monitor covers
+  // The vault and registry are pinned here too, so the drift monitor covers
   // them. They are not generated from a circuit — their codehashes are deployment-specific because
   // Solidity bakes immutables into runtime bytecode — so they carry no verifierSolSha256 either.
   'DarkVault',

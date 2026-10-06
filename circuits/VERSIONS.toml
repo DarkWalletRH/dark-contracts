@@ -1,4 +1,4 @@
-# Dark Wallet ZK toolchain pins.
+# Dark Wallet ZK toolchain pins (measured in the proving spike, 2026-09-16).
 # This pair is what actually built, proved and verified the spike circuit.
 
 [nargo]
