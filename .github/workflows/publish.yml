@@ -21,6 +21,10 @@ jobs:
           node-version: "22"
           registry-url: https://npm.pkg.github.com
           scope: "@darkwalletrh"
+      # The check compiles the contracts: forge-std and OpenZeppelin come from npm, forge from Foundry.
+      - run: npm ci
+        working-directory: contracts
+      - uses: foundry-rs/foundry-toolchain@v1
       - name: package contents match the sources
         run: node scripts/build-abi.mjs --check
       - name: the tag matches package.json
