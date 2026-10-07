@@ -11,6 +11,7 @@ import {MockUSDG} from "../src/mocks/MockUSDG.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 contract FeeUSDG is ERC20 {
     constructor() ERC20("Fee USDG", "USDG") {}
@@ -28,6 +29,29 @@ contract FeeUSDG is ERC20 {
         _transfer(from, to, a - 1); // 1 micro-unit fee
         _burn(from, 1);
         return true;
+    }
+}
+
+/// @dev A USDG with a transfer hook (ERC-777 style, or an upgraded token): every balance change
+///      calls `target` with `data` and bubbles its revert. Armed only after minting.
+contract HookUSDG is MockUSDG {
+    address internal target;
+    bytes internal data;
+
+    function arm(address t, bytes calldata d) external {
+        target = t;
+        data = d;
+    }
+
+    function _update(address from, address to, uint256 a) internal override {
+        super._update(from, to, a);
+        if (target == address(0)) return;
+        (bool ok, bytes memory ret) = target.call(data);
+        if (!ok) {
+            assembly {
+                revert(add(ret, 32), mload(ret))
+            }
+        }
     }
 }
 
@@ -132,6 +156,35 @@ contract DarkVaultTest is DarkBase {
         vm.expectRevert(abi.encodeWithSelector(IDarkVault.UnexpectedTransferAmount.selector, 10e6, 10e6 - 1));
         v.deposit(10e6, "");
         vm.stopPrank();
+    }
+
+    /// @notice The threat model's token-hook row: all four account functions share one guard, so a
+    ///         hook in USDG's transferFrom (deposit) or transfer (withdraw) re-enters none of them.
+    function test_tokenHookCannotReenterAnyAccountFunction() public {
+        HookUSDG h = new HookUSDG();
+        DarkVault v = new DarkVault(address(h), registry, transferV, withdrawV, owner, guard, defaultCaps());
+        h.mint(alice, 100e6);
+        vm.startPrank(alice);
+        h.approve(address(v), 100e6);
+        v.deposit(50e6, "");
+        vm.stopPrank();
+
+        IDarkVault.TransferCt memory none;
+        bytes[4] memory reentry = [
+            abi.encodeCall(IDarkVault.deposit, (1e6, "")),
+            abi.encodeCall(IDarkVault.applyPending, (0, "")),
+            abi.encodeCall(IDarkVault.transfer, (bob, none, "", "", "", "")),
+            abi.encodeCall(IDarkVault.withdraw, (1e6, bob, "", ""))
+        ];
+        for (uint256 i; i < reentry.length; ++i) {
+            h.arm(address(v), reentry[i]);
+            vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+            vm.prank(alice);
+            v.deposit(1e6, "");
+            vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+            vm.prank(alice);
+            v.withdraw(1e6, bob, "", "");
+        }
     }
 
     // ----------------------------------------------------------- applyPending

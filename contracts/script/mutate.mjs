@@ -2,8 +2,10 @@
 // Mutation testing for the Dark contracts.
 //
 // Each mutation is a mechanical source edit applied to a COPY of contracts/src (and script/), never
-// to the working tree. The copy is compiled and the full `forge test` suite is run against it:
-// a non-zero exit means the mutation was KILLED, exit 0 means it SURVIVED and a test is missing.
+// to the working tree. The copy is compiled and the full `forge test` suite is run against it.
+// The unmutated copy runs first and must pass, so a failure is the mutation's and not the copy's.
+// A mutation is KILLED when a test fails, SURVIVED when every test passes (a test is missing), and
+// INVALID when forge fails without a failing test (a compile error): that row proves nothing.
 //
 //   node script/mutate.mjs                # run all, rewrite audit/MUTATIONS.md
 //   node script/mutate.mjs --only M7a,M12 # run a subset, print the table only
@@ -347,6 +349,38 @@ const MUTATIONS = [
     replace: "",
     expect: "I2",
   },
+  {
+    id: "M39a",
+    spec: "`deposit` loses `nonReentrant` (a USDG hook re-enters mid-deposit)",
+    file: V,
+    find: "    function deposit(uint256 amount, bytes calldata aeBalance) external nonReentrant whenNotPaused {",
+    replace: "    function deposit(uint256 amount, bytes calldata aeBalance) external whenNotPaused {",
+    expect: "token-hook re-entry test",
+  },
+  {
+    id: "M39b",
+    spec: "`applyPending` loses `nonReentrant`",
+    file: V,
+    find: "    function applyPending(uint64 expectedPendingCount, bytes calldata aeBalance) external nonReentrant {",
+    replace: "    function applyPending(uint64 expectedPendingCount, bytes calldata aeBalance) external {",
+    expect: "token-hook re-entry test",
+  },
+  {
+    id: "M39c",
+    spec: "`transfer` loses `nonReentrant`",
+    file: V,
+    find: "    ) external nonReentrant whenNotPaused {",
+    replace: "    ) external whenNotPaused {",
+    expect: "token-hook re-entry test",
+  },
+  {
+    id: "M39d",
+    spec: "`withdraw` loses `nonReentrant`",
+    file: V,
+    find: "        external\n        nonReentrant\n    {",
+    replace: "        external\n    {",
+    expect: "token-hook re-entry test",
+  },
 ];
 
 /** Mutations that live outside contracts/ — reported, not run here. */
@@ -373,48 +407,61 @@ if (onlyList.length && selected.length !== onlyList.length) {
   throw new Error(`unknown mutation id in --only: ${onlyList.join(",")}`);
 }
 
-const results = [];
-for (const m of selected) {
-  const dir = join(WORK, m.id);
+/** Lay out a workspace the way the suite expects it, run `forge test`, classify the outcome. */
+function run(id, edit) {
+  const dir = join(WORK, id);
   rmSync(dir, { recursive: true, force: true });
   mkdirSync(dir, { recursive: true });
-  for (const d of ["src", "test", "script"]) cpSync(join(ROOT, d), join(dir, d), { recursive: true });
+  // deployments/: the deploy tests read the committed verifier codehash pin.
+  for (const d of ["src", "test", "script", "deployments"]) cpSync(join(ROOT, d), join(dir, d), { recursive: true });
   cpSync(join(ROOT, "foundry.toml"), join(dir, "foundry.toml"));
   if (!existsSync(join(dir, "node_modules"))) symlinkSync(join(ROOT, "node_modules"), join(dir, "node_modules"));
+  edit?.(dir);
 
-  const target = join(dir, m.file);
-  const before = readFileSync(target, "utf8");
-  const hits = before.split(m.find).length - 1;
-  if (hits !== 1) {
-    throw new Error(`${m.id}: pattern matched ${hits} times in ${m.file} (expected exactly 1) — the mutation is stale`);
-  }
-  writeFileSync(target, before.replace(m.find, m.replace));
-
-  let killed = false;
-  let detail = "";
+  let status = "survived";
+  let detail = "all tests passed";
   try {
     execFileSync("forge", ["test", "--root", dir], { cwd: dir, stdio: "pipe", encoding: "utf8" });
-    detail = "all tests passed";
   } catch (e) {
-    killed = true;
-    const out = `${e.stdout ?? ""}${e.stderr ?? ""}`;
+    const out = `${e.stdout ?? ""}${e.stderr ?? ""}`.replaceAll(dir, ".");
     const fail = out.match(/\[FAIL[^\]]*\][^\n]*/);
-    const compile = out.match(/^Error[^\n]*/m);
-    detail = (fail?.[0] ?? compile?.[0] ?? "forge test failed").trim().slice(0, 150);
+    status = fail ? "killed" : "invalid";
+    detail = (fail?.[0] ?? out.match(/^Error[^\n]*/m)?.[0] ?? "forge test failed").trim().slice(0, 150);
   }
   if (!keep) rmSync(dir, { recursive: true, force: true });
-  results.push({ ...m, killed, detail });
-  process.stdout.write(`${killed ? "KILLED  " : "SURVIVED"} ${m.id.padEnd(5)} ${m.spec}\n${killed ? "" : ""}`);
+  return { status, detail };
 }
 
-const killedCount = results.filter((r) => r.killed).length;
-process.stdout.write(`\n${killedCount}/${results.length} killed\n`);
+const baseline = run("baseline");
+if (baseline.status !== "survived") {
+  throw new Error(`the unmutated suite does not pass in the workspace, so no kill would mean anything: ${baseline.detail}`);
+}
+process.stdout.write("baseline: unmutated suite passes\n");
+
+const results = [];
+for (const m of selected) {
+  const r = run(m.id, (dir) => {
+    const target = join(dir, m.file);
+    const before = readFileSync(target, "utf8");
+    const hits = before.split(m.find).length - 1;
+    if (hits !== 1) {
+      throw new Error(`${m.id}: pattern matched ${hits} times in ${m.file} (expected exactly 1) — the mutation is stale`);
+    }
+    writeFileSync(target, before.replace(m.find, m.replace));
+  });
+  results.push({ ...m, ...r });
+  process.stdout.write(`${r.status.toUpperCase().padEnd(8)} ${m.id.padEnd(5)} ${m.spec}\n`);
+}
+
+const count = (s) => results.filter((r) => r.status === s).length;
+const [killedCount, survivedCount, invalidCount] = [count("killed"), count("survived"), count("invalid")];
+process.stdout.write(`\n${killedCount}/${results.length} killed, ${survivedCount} survived, ${invalidCount} invalid\n`);
 
 if (!onlyList.length) {
   const rows = results
     .map(
       (r) =>
-        `| ${r.id} | ${r.spec} | \`${r.file}\` | ${r.expect} | ${r.killed ? "**killed**" : "**SURVIVED**"} | ${r.killed ? r.detail.replace(/\|/g, "\\|") : "missing test"} |`,
+        `| ${r.id} | ${r.spec} | \`${r.file}\` | ${r.expect} | ${{ killed: "**killed**", survived: "**SURVIVED**", invalid: "**INVALID**" }[r.status]} | ${r.status === "survived" ? "missing test" : r.detail.replace(/\|/g, "\\|")} |`,
     )
     .join("\n");
   const skipped = OUT_OF_SCOPE.map(([id, spec, owner]) => `| ${id} | ${spec} | ${owner} |`).join("\n");
@@ -422,9 +469,11 @@ if (!onlyList.length) {
 
 Generated by \`node script/mutate.mjs\` — every row is a mechanical edit applied to a throwaway copy
 of \`contracts/src\` (and \`contracts/script\`), compiled and run against the full \`forge test\` suite.
-A mutation is **killed** when that run fails. Re-run after any test or source change.
+The unmutated copy is run first and must pass. A mutation is **killed** when a test fails,
+**survived** when every test passes, and **invalid** when forge fails without a failing test (a
+compile error), which proves nothing. Re-run after any test or source change.
 
-**Result: ${killedCount}/${results.length} killed, ${results.length - killedCount} survived.**
+**Result: ${killedCount}/${results.length} killed, ${survivedCount} survived, ${invalidCount} invalid.**
 
 | # | Mutation | File | Expected killer | Result | Failing check |
 |---|---|---|---|---|---|

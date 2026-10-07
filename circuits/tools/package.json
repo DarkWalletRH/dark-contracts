@@ -11,6 +11,6 @@
   "dependencies": {
     "@aztec/bb.js": "5.0.0-nightly.20260522",
     "@noble/hashes": "1.8.0",
-    "@darkwalletrh/dark-sdk": "github:DarkWalletRH/dark-sdk#v0.4.2"
+    "@darkwalletrh/dark-sdk": "github:DarkWalletRH/dark-sdk#v0.4.3"
   }
 }

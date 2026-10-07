@@ -26,19 +26,26 @@ version = "1.0.0-beta.22"
 install = "npm i @noir-lang/noir_js@1.0.0-beta.22"
 
 # ---- what a toolchain bump must re-check --------------------------------------------------------
-# Two of our soundness arguments rest on BACKEND behaviour rather than on constraints written in the
-# circuits, so a VK-hash diff alone is not enough to clear a nargo/bb upgrade:
+# Two behaviours rest on the toolchain rather than on constraints written in the circuits, so a
+# VK-hash diff alone is not enough to clear a nargo/bb upgrade:
 #
 #  1. Non-canonical scalars. The 128-bit limb checks bound a scalar below 2^256, and the group order
-#     n is ~2^254, so a witness of `s + n` passes them while still being congruent to s. What
-#     actually rejects it is bb's Grumpkin MSM gadget refusing any scalar >= n at witness-solving
-#     time. `dark_register::tests::test_neg_s_plus_n` pins that behaviour. If a future backend
-#     silently reduced mod n instead of failing, the gap would reopen with NO in-circuit constraint
-#     catching it. That test must stay green across every bump.
+#     n is ~2^254, so a witness of `s + n` passes them while still being congruent to s. The
+#     "is not a valid grumpkin scalar" rejection that `dark_register::tests::test_neg_s_plus_n`
+#     pins comes from nargo's ACVM solver, not from a bb constraint: a prover who builds the witness
+#     by hand and calls bb directly never meets it. Canonicality is not constrained and does not
+#     need to be: s + n and s give the same group elements, so no false statement becomes provable.
+#     The real guards are the two that rule out the zero scalar, and neither may be removed:
+#     `assert_key` (s*P == H, so s != 0 mod n) and the `!is_identity(ct_ds)` check in transfer
+#     (so r != 0 mod n). Keep the test green across every bump as a solver regression check only.
 #
 #  2. The identity as an operand. `deposit` stores (x*G, identity), and the (0,0) sentinel is not on
 #     the curve, so a deposit-only account's first transfer or withdraw feeds the identity into
 #     `decrypt` as an input rather than as the result of P - P. Noir's beta.22 EmbeddedCurvePoint has
 #     no is_infinite flag, so this is the stdlib's behaviour, not ours.
 #     `test_accepts_a_{transfer,withdraw}_from_a_deposit_only_account` pin it, with the matching
-#     overdraft negatives.
+#     overdraft negatives, but only under nargo's ACVM solver: no bb proof covers it. Every
+#     committed Prover.toml (tools/gen_prover.mjs) has a non-identity avail_d, so build.mjs,
+#     check-manifest.mjs and evm/test/Verifiers.t.sol never prove or verify a (0,0) MSM operand.
+#     The live E2E proved a deposit-only TRANSFER, not a deposit-only withdraw. After a bump,
+#     prove a deposit-only withdraw with bb before trusting it.

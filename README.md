@@ -99,7 +99,7 @@ deployment record, the bytecode pins and the Solidity sources. It has no depende
 a release tag:
 
 ```bash
-npm install github:DarkWalletRH/dark-contracts#v1.0.2
+npm install github:DarkWalletRH/dark-contracts#v1.0.3
 ```
 
 | Export | Contents |
