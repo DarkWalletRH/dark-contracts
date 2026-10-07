@@ -5,7 +5,7 @@ import {DarkBase} from "./DarkBase.t.sol";
 import {IDarkVault} from "../src/interfaces/IDarkVault.sol";
 
 /// @notice Cap boundaries: every cap is INCLUSIVE, and `tightenCaps` compares all six fields
-///         (§19 C6). Added because mutations M10a and M11b survived the first kill run.
+///         (`minDeposit` included). Kills mutations M10a and M11b in script/mutate.mjs.
 contract DarkVaultCapBoundariesTest is DarkBase {
     function _setCaps(IDarkVault.Caps memory c) internal {
         vm.prank(owner);
@@ -49,7 +49,7 @@ contract DarkVaultCapBoundariesTest is DarkBase {
         vault.deposit(10e6, "");
     }
 
-    /// @dev Kills M11b: the guardian may not lower `minDeposit` either (§19 C6).
+    /// @dev Kills M11b: the guardian may not lower `minDeposit` either.
     function test_tightenCapsComparesAllSixFields() public {
         IDarkVault.Caps memory c = vault.caps();
 

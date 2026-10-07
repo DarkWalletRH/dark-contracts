@@ -7,8 +7,9 @@
 // are making a private payment — the precise metadata this product exists to avoid. So the slice is
 // extracted here, pinned by hash, and handed to bb.js with `skipSrsInit`.
 //
-// Output: circuits/srs/{g1.dat, g2.dat, MANIFEST.json}. The G1 slice is 2^16 + 1 points at 32 bytes
-// each (the circuits' gate counts are all under 2^16; see manifest.json), which is ~2 MB.
+// Output: circuits/srs/{g1.dat, g2.dat, MANIFEST.json}. The G1 slice is 2^17 points (bb's 4 MiB
+// chunk; the circuits' gate counts are all under 2^16, see manifest.json), stored uncompressed when
+// no compressed cache exists (8 MiB).
 import { createHash } from 'node:crypto';
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';

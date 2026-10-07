@@ -2,26 +2,23 @@
 //
 //   node scripts/check-verifier-bytecode.mjs      (npm run check:verifier-bytecode; needs forge + cast)
 //
-// Two review findings said the same thing from two angles. First: the verifiers were deployed by
-// hand with `forge create --libraries`, `broadcast/` is gitignored, and two contradictory Foundry
-// profiles existed — so given the commit alone nobody could reproduce the bytes now live at the
-// pinned addresses. Second: the deploy script proves the code AT each pinned library address
-// matches, but not that those addresses are the ones actually LINKED into a verifier's bytecode.
+// Rebuilds every deployed contract exactly as it was deployed — compiler profile, source path and
+// content, linked library addresses, constructor immutables — and requires the keccak of the
+// runtime bytecode to equal the pinned on-chain codehash, metadata included. A match proves that
+// the profile is the shipped one, that the pinned library addresses are precisely what is linked
+// in (any other address at those offsets changes the hash), and that the immutables the chain
+// carries are the ones this source defines. That is more than the deploy script's own pin check
+// proves: not just that the code AT each pinned library address matches, but that those addresses
+// are the ones LINKED into each verifier's bytecode.
 //
-// One experiment settles both, and this script is that experiment made permanent: rebuild each
-// contract the way it was deployed, and keccak the runtime bytecode. If it equals the pinned
-// codehash, then the profile is the shipped one; the pinned library addresses are precisely what
-// is linked in (any other address at those offsets changes the hash); and the immutables the chain
-// carries are the ones the source defines. Byte-for-byte, metadata included.
+// The recipe, as deployed:
 //
-// What "the way it was deployed" turned out to mean — each of these was learned by a mismatch:
-//
-//   1. The source. The chain was built from renamed copies of circuits/verifiers/<n>/Verifier.sol
-//      at the path evm/src/<n>.sol, with ONLY the contract line changed (HonkVerifier →
-//      HonkVerifier_<n>). That path and that exact content are inside the metadata hash. The copy
-//      was gitignored, and tools/gen_fixtures.mjs — the only generator in the repo — suffixes every
-//      top-level declaration, so it does not reproduce it either. This script regenerates the
-//      deploy-time file itself, in a temporary project, so the recipe finally lives in git.
+//   1. The source. The deployed verifiers were compiled from renamed copies of
+//      circuits/verifiers/<n>/Verifier.sol at the path evm/src/<n>.sol, with ONLY the contract line
+//      changed (HonkVerifier → HonkVerifier_<n>). That path and that exact content are inside the
+//      metadata hash. tools/gen_fixtures.mjs suffixes every top-level declaration instead, so its
+//      output does not reproduce them; this script regenerates the deploy-time file itself, in a
+//      temporary project, from scripts/lib/verifier-recipe.mjs.
 //   2. The library settings. `forge create --libraries` records the linked addresses in solc's
 //      `settings.libraries`, which every contract in that compilation carries in its metadata. The
 //      libraries were deployed first with no such setting; each verifier with exactly its own two.
@@ -48,7 +45,7 @@ const pins = JSON.parse(readFileSync(process.env.PIN_FILE ?? join(ROOT, 'contrac
 /**
  * The two application contracts, compiled under contracts/foundry.toml (a different profile from the
  * verifiers: solc 0.8.28, runs 1000, via-IR). Their constructor arguments become immutables, exactly
- * like the verifiers' — so the same technique reproduces them, with the values taken from the SDK's
+ * like the verifiers' — so the same technique reproduces them, with the values taken from the
  * deployment record rather than read back from the chain, which would be circular.
  */
 const APP_CONTRACTS = {
@@ -116,7 +113,7 @@ function constantsOf(source) {
 const declaredImmutables = (source) => [...source.matchAll(/^\s*uint256\s+internal\s+immutable\s+(\$\w+);/gm)].map((m) => m[1]);
 
 /**
- * The testnet deployment, read out of contracts/deployments/deployments.ts by regex. Every field is
+ * The deployment for `key`, read out of contracts/deployments/deployments.ts by regex. Every field is
  * required: a missing one would otherwise silently become `undefined` and be padded to a zero
  * address, which would fail the hash comparison confusingly rather than saying what is wrong.
  */
@@ -242,9 +239,9 @@ try {
 
 // --- the vault and registry: a different profile, same immutable technique -------------------------
 {
-  // Parsed from the committed source, not imported from dist/: the circuits CI job has foundry but
-  // no node_modules and no built SDK (the same reason this file hashes with `cast`). Reading the
-  // source is also the better oracle — it is what a reviewer sees.
+  // Parsed from the committed source rather than imported: this script runs with foundry on PATH
+  // and no node_modules (the same reason it hashes with `cast`). Reading the source is also the
+  // better oracle — it is what a reviewer sees.
   const contractsDir = join(ROOT, 'contracts');
   // Fail, never skip: the vault and registry need contracts/node_modules (OpenZeppelin, forge-std),
   // and a check that quietly does nothing when its dependencies are missing is worse than no check.
@@ -259,19 +256,19 @@ try {
     env: { ...process.env, FOUNDRY_OUT: 'out-verify', FOUNDRY_CACHE_PATH: 'cache-verify' },
     stdio: ['ignore', 'ignore', 'inherit'],
   });
-  // Every chain that has a vault pinned (this used to rebuild the testnet vault only).
+  // Every chain that has a vault pinned.
   const SDK_KEY = { 46630: 'CHAIN_ID_TESTNET', 4663: 'CHAIN_ID_MAINNET' };
   for (const [CHAIN, chainPins] of Object.entries(pins)) {
   if (CHAIN === '_' || !chainPins.DarkVault) continue;
-  if (!SDK_KEY[CHAIN]) { fail(`chain ${CHAIN}: vault pinned but no SDK block to read its immutables from`); continue; }
+  if (!SDK_KEY[CHAIN]) { fail(`chain ${CHAIN}: vault pinned but no deployment-record block to read its immutables from`); continue; }
   console.log(`chain ${CHAIN} — application contracts`);
   const d = deploymentOf(SDK_KEY[CHAIN]);
   for (const [name, spec] of Object.entries(APP_CONTRACTS)) {
     const pin = chainPins[name];
     if (!pin) { fail(`${name}: not pinned for chain ${CHAIN}`); continue; }
-    // The SDK's record must agree with the pin file before either is used as an oracle.
+    // The deployment record must agree with the pin file before either is used as an oracle.
     const sdkAddress = name === 'DarkVault' ? d.vault : d.registry;
-    if (!same(sdkAddress, pin.address)) { fail(`${name}: SDK says ${sdkAddress}, pin file says ${pin.address}`); continue; }
+    if (!same(sdkAddress, pin.address)) { fail(`${name}: deployment record says ${sdkAddress}, pin file says ${pin.address}`); continue; }
     const artPath = join(contractsDir, 'out-verify', spec.file, `${name}.json`);
     if (!existsSync(artPath)) { fail(`${name}: no artifact at ${artPath}`); continue; }
     const deployed = JSON.parse(readFileSync(artPath, 'utf8')).deployedBytecode;
@@ -290,7 +287,7 @@ try {
     if (bad) continue;
     const got = keccak(code);
     same(got, pin.codehash)
-      ? ok(`${name}: rebuilt with its immutables from the SDK deployment — matches its pin byte-for-byte`)
+      ? ok(`${name}: rebuilt with its immutables from the deployment record — matches its pin byte-for-byte`)
       : fail(`${name}: rebuilt ${got.slice(0, 18)}… ≠ pinned ${pin.codehash.slice(0, 18)}… — profile, source or a constructor argument has drifted from the chain`);
   }
   }

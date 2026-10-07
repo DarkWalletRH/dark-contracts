@@ -13,7 +13,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // fileURLToPath, not .pathname: a checkout under a directory with a space gets back "%20", which
-// readFileSync then takes literally (2026-09-20).
+// readFileSync then takes literally.
 const ROOT = fileURLToPath(new URL('..', import.meta.url)).replace(/\/$/, '');
 const NARGO = join(homedir(), '.nargo/bin/nargo');
 const BB = join(homedir(), '.bb/bb');

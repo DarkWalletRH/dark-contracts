@@ -2,9 +2,9 @@
 //
 //   node scripts/check-verifier-pins.mjs   (npm run check:verifier-pins)
 //
-// The pin file's own header says "`verifierSolSha256` ties each row back to circuits/manifest.json".
-// It did not. The field was recorded and never compared, so the tie was a sentence rather than a
-// check — the same shape as §3's claimed three-way H cross-check, which also did not exist.
+// The pin file records, for every generated verifier, the SHA-256 of the Verifier.sol it was
+// deployed from. This script requires that hash to equal the one in circuits/manifest.json, so a
+// circuit change that is not followed by a new verifier and a new pin fails here.
 //
 // Why it matters. `check-manifest.mjs` recompiles the circuits and keeps manifest.json honest, and
 // the deploy script refuses to wire a verifier whose address or on-chain codehash is not in the pin
@@ -39,8 +39,8 @@ const VERIFIER_TO_CIRCUIT = {
 const NOT_CIRCUIT_GENERATED = new Set([
   'RelationsLib',
   'ZKTranscriptLib',
-  // The vault and registry are pinned here too, so the drift monitor covers
-  // them. They are not generated from a circuit — their codehashes are deployment-specific because
+  // The vault and registry are pinned here too, so bytecode drift at their addresses can be
+  // detected. They are not generated from a circuit — their codehashes are deployment-specific because
   // Solidity bakes immutables into runtime bytecode — so they carry no verifierSolSha256 either.
   'DarkVault',
   'DarkKeyRegistry',

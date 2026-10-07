@@ -3,11 +3,11 @@
 //
 // It also copies each generated verifier into evm/src/ with every top-level declaration
 // suffixed. bb gives all three circuits' verifiers the same contract and library names
-// (HonkVerifier + RelationsLib + ZKTranscriptLib, §19 X4), which collide when they share one
+// (HonkVerifier + RelationsLib + ZKTranscriptLib), which collide when they share one
 // project. verifiers/ stays byte-identical to bb's output; evm/src/ is a throwaway rename so the
 // three can be measured side by side.
 //
-// NOT the deploy recipe (2026-09-20). The verifiers live on 46630 were compiled from
+// NOT the deploy recipe. The deployed verifiers were compiled from
 // evm/src/<crate>.sol copies with ONLY the contract line renamed — not the every-declaration rename
 // this tool performs — and that content is inside the metadata hash, so what this writes does not
 // reproduce the chain. scripts/check-verifier-bytecode.mjs regenerates the deploy-time source
@@ -17,7 +17,7 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 // fileURLToPath, not .pathname: a checkout under a directory with a space gets back "%20", which
-// readFileSync then takes literally (2026-09-20).
+// readFileSync then takes literally.
 const ROOT = fileURLToPath(new URL('..', import.meta.url)).replace(/\/$/, '');
 const CRATES = ['register', 'transfer', 'withdraw'];
 

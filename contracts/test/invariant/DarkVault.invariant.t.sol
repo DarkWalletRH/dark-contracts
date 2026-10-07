@@ -10,7 +10,7 @@ import {IDarkVault} from "../../src/interfaces/IDarkVault.sol";
 import {IDarkKeyRegistry} from "../../src/interfaces/IDarkKeyRegistry.sol";
 import {DarkGrumpkin} from "../../src/libraries/DarkGrumpkin.sol";
 
-/// @notice I1-I15 (§15) as one Handler-based stateful suite, `fail_on_revert = true`.
+/// @notice I1-I15 as one Handler-based stateful suite, `fail_on_revert = true`.
 ///         The ghost oracle lives in the handler.
 contract DarkVaultInvariants is DarkBase {
     DarkVaultHandler internal handler;

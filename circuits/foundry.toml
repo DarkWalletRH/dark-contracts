@@ -2,8 +2,8 @@
 # — proven, not assumed: scripts/check-verifier-bytecode.mjs rebuilds evm/src/*.sol under it, links
 # the pinned libraries, fills the immutables from the source constants, and gets the pinned on-chain
 # codehash back byte-for-byte, metadata included. That proof is only as good as this
-# profile staying fixed, hence the explicit solc pin below: it was unpinned, and forge merely
-# happened to keep choosing 0.8.30. §19 X3: cancun (shanghai costs ~31k more gas).
+# profile staying fixed, hence the explicit solc pin below. evm_version is cancun (shanghai costs
+# ~31k more gas).
 #
 # Note for anyone redeploying: the chain was built from the renamed copies in evm/src/ (contract
 # HonkVerifier_<name>), not from circuits/verifiers/<name>/Verifier.sol. The two differ only in the

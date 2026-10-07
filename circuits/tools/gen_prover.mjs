@@ -2,8 +2,7 @@
 // @darkwalletrh/dark-sdk. That is the whole point: if the SDK's maths and the circuits' maths ever
 // diverge, `nargo execute` fails here rather than in a user's wallet.
 //
-//   npm --prefix ../../packages/dark-sdk ci && npm --prefix ../../packages/dark-sdk run build
-//   npm --prefix . install && node gen_prover.mjs
+//   npm install && node gen_prover.mjs
 //
 // Deterministic: the sk and the hedging randomness are fixed, so re-running reproduces the
 // same Prover.toml byte for byte.
@@ -26,7 +25,7 @@ import {
   TAG_TRANSFER_R,
 } from '@darkwalletrh/dark-sdk';
 
-// --- the circuit's copy of H must be the SDK's copy of H (§3, §19 K1/K2) -------------------
+// --- the circuit's copy of H must be the SDK's copy of H -----------------------------------
 const H_IN_CIRCUIT = {
   x: 0x1c670f693e0f1e5f2dd00c3fbf55c8e22af4ca3071dee49808899f9aa44d1024n,
   y: 0x2574095592574b6dedda035b4a88af623685e955658a73e5af0701ee23e282bcn,
@@ -66,7 +65,7 @@ for (const k of [senderKeys, recipientKeys]) {
 const availRho = hedgedScalar(TAG_TRANSFER_R, senderKeys.s, new Uint8Array(8).fill(1), new Uint8Array(32).fill(0xa1));
 const avail = encrypt(BALANCE, [senderKeys.P], availRho);
 
-// Transfer randomness, hedged exactly as the SDK does at send time (§3), with the CSPRNG draw
+// Transfer randomness, hedged exactly as the SDK does at send time, with the CSPRNG draw
 // pinned so this file is reproducible.
 const ctx = contextBytes({ chainId: CHAIN_ID, vault: VAULT, from: SENDER, to: RECIPIENT, fromNonce: NONCE });
 const r = hedgedScalar(TAG_TRANSFER_R, senderKeys.s, ctx, new Uint8Array(32).fill(0x5a));
@@ -169,7 +168,7 @@ write(
     point('d', avail.D[0]),
 );
 
-// A public amount is (x*G, identity) (§3); the identity encodes as (0,0) on both sides.
+// A public amount is (x*G, identity); the identity encodes as (0,0) on both sides.
 const publicAmount = add(mul(G, 7n), mul(H, 0n));
 if (encode(publicAmount).y === 0n) throw new Error('unexpected identity');
 console.log('H, keys, ciphertexts and remainders all cross-check against the SDK.');

@@ -4,12 +4,11 @@
 //
 // Takes only the vault's address from forge's broadcast/…/run-latest.json and reads everything else
 // back from the vault on chain — registry, all three verifiers, timelock, guardian, USDG — so the
-// record is what the chain says, not what the deploy script meant (the testnet-only version
-// never recorded the verifiers or the guardian). It cross-checks every verifier against its pin and
-// the broadcast's own CREATEs, then rewrites the two places a deployment lives:
+// record is what the chain says, not what the deploy script meant. It cross-checks every verifier
+// against its pin and the broadcast's own CREATEs, then rewrites the two places a deployment lives:
 //   - contracts/deployments/verifier-codehashes.json  (DarkVault + DarkKeyRegistry rows)
 //   - contracts/deployments/deployments.ts            (the chain's whole address block + deployBlock)
-// and prints the ops/DEPLOYMENTS.md rows to append.
+// and prints the rows for the deployment log.
 import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -26,7 +25,7 @@ if (!C) throw new Error(`usage: record-deploy.mjs ${Object.keys(CHAINS).join('|'
 
 const run = JSON.parse(readFileSync(join(ROOT, 'contracts/broadcast', C.script, CHAIN, 'run-latest.json'), 'utf8'));
 // A real broadcast always carries receipts; only a dry-run file has none. Refuse rather than guess
-// a deploy block — the indexer starts its mirror there, and a wrong one silently loses events.
+// a deploy block — consumers start reading events there, and a wrong one silently loses events.
 if (!run.receipts?.length) throw new Error('no receipts: this looks like a dry-run file — broadcast first');
 if (run.receipts.some((r) => Number(r.status) !== 1)) throw new Error('a transaction in this broadcast failed');
 const deployBlock = Math.min(...run.receipts.map((r) => Number(r.blockNumber)));
@@ -103,7 +102,7 @@ writeFileSync(sdkPath, sdk);
 const today = new Date().toISOString().slice(0, 10);
 console.log(`recorded chain ${CHAIN}, deploy block ${deployBlock}`);
 for (const [k, v] of Object.entries(d)) console.log(`  ${k.padEnd(9)} ${v}`);
-console.log('\nrows for ops/DEPLOYMENTS.md:');
+console.log('\nrows for the deployment log:');
 console.log(`| ${today} | \`DarkTimelock\` (OZ TimelockController) | \`${d.timelock}\` | — | 48 h delay; proposer/executor/canceller = the owner Safe |`);
 console.log(`| ${today} | \`DarkKeyRegistry\` | \`${d.registry}\` | — | immutable, no admin. codehash \`${registryHash}\` |`);
 console.log(`| ${today} | **\`DarkVault\`** | **\`${d.vault}\`** | — | owner = the timelock, guardian = \`${d.guardian}\`, USDG \`${d.usdg}\`. codehash \`${vaultHash}\` |`);

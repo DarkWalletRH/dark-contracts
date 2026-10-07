@@ -3,7 +3,7 @@ pragma solidity 0.8.28;
 
 import {IDarkVerifier} from "../../src/interfaces/IDarkVerifier.sol";
 
-/// @notice Stand-in for the generated Honk verifiers, in two modes (§15).
+/// @notice Stand-in for the generated Honk verifiers, in two modes.
 ///         - unarmed (`expected == 0`): accepts any inputs while `result` is true (unit tests).
 ///         - armed by the handler's ghost oracle: accepts only the exact public-input array the
 ///           oracle derived from its own plaintext model of the state. A vault that passes any

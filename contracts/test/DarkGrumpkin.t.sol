@@ -50,7 +50,7 @@ contract DarkGrumpkinTest is Test {
     }
 
     /// @notice 500 cases of mulG, add, neg and sub differentially checked against @noble/curves,
-    ///         starting with the §19 X1 edge cases: identity, doubling, P + (-P) and the ends of
+    ///         starting with the edge cases: identity, doubling, P + (-P) and the ends of
     ///         the 2^48 scalar range. Non-canonical inputs are covered below.
     function test_differentialAgainstNoble() public {
         string[] memory cmd = new string[](4);
@@ -97,7 +97,7 @@ contract DarkGrumpkinTest is Test {
         }
     }
 
-    /// @notice §19 X1: non-canonical encodings of a valid point are rejected, including the
+    /// @notice Non-canonical encodings of a valid point are rejected, including the
     ///         coordinates of the reference points the differential run produced.
     function test_nonCanonicalInputsRejected() public {
         string[] memory cmd = new string[](4);

@@ -13,7 +13,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // fileURLToPath, not .pathname: a checkout under a directory with a space gets back "%20", which
-// readFileSync then takes literally (2026-09-20).
+// readFileSync then takes literally.
 const ROOT = fileURLToPath(new URL('..', import.meta.url)).replace(/\/$/, '');
 const NARGO = join(homedir(), '.nargo/bin/nargo');
 const BB = join(homedir(), '.bb/bb');
@@ -68,7 +68,7 @@ for (const { crate, pkg, onchain } of CIRCUITS) {
     run(BB, ['write_solidity_verifier', '-k', `${out}/vk`, '-o', verifier, '--verifier_target', 'evm']);
   }
 
-  // §19 X2: the wire public-input count is what the contract passes. bb writes those wire
+  // The wire public-input count is what the contract passes. bb writes those wire
   // values to `public_inputs` as 32-byte words; the VK's publicInputsSize is 8 larger
   // (pairing-point limbs that travel inside the proof).
   const publicInputs = size(`${out}/public_inputs`) / 32;

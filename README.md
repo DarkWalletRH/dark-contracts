@@ -99,7 +99,7 @@ deployment record, the bytecode pins and the Solidity sources. It has no depende
 a release tag:
 
 ```bash
-npm install github:DarkWalletRH/dark-contracts#v1.0.1
+npm install github:DarkWalletRH/dark-contracts#v1.0.2
 ```
 
 | Export | Contents |
@@ -206,6 +206,11 @@ forge test                          # the generated verifiers, driven with real 
 | `dark_transfer` | 7,724 | 21 |
 | `dark_withdraw` | 5,767 | 12 |
 | `dark_disclose_range` | 5,112 | 9 (verified off chain) |
+
+## Specification references
+
+Comments of the form `§n` in the contracts, circuits and tools cite sections of the DARK-CB-1
+protocol specification, which is published with the audit report; the code is complete without it.
 
 ## Status
 

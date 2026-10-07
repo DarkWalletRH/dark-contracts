@@ -22,7 +22,7 @@ contract DeployDarkTestnetTest is Test {
         registerV = address(new DarkTestVerifier());
         transferV = address(new DarkTestVerifier());
         withdrawV = address(new DarkTestVerifier());
-        // stand-ins for the two shared Honk libraries (§19 X4): only their codehash is pinned
+        // stand-ins for the two shared Honk libraries: only their codehash is pinned
         vm.etch(relations, hex"6001");
         vm.etch(transcript, hex"6002");
 

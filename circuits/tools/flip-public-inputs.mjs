@@ -8,9 +8,8 @@
 //
 //   node circuits/tools/flip-public-inputs.mjs
 //
-// bb CLI, not bb.js: they are the same pinned barretenberg (circuits/VERSIONS.toml) and bb.js is
-// not a dependency of this repo. If bb.js is ever added, point this at it instead -- disclose
-// proofs are verified in the browser.
+// bb CLI, not bb.js: they are the same pinned barretenberg (circuits/VERSIONS.toml), and the CLI is
+// what the circuits CI job has on PATH. Disclose proofs are verified in the browser with bb.js.
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
@@ -18,13 +17,13 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // fileURLToPath, not .pathname: a checkout under a directory with a space gets back "%20", which
-// readFileSync then takes literally (2026-09-20).
+// readFileSync then takes literally.
 const ROOT = fileURLToPath(new URL('..', import.meta.url)).replace(/\/$/, '');
 const NARGO = join(homedir(), '.nargo/bin/nargo');
 const BB = join(homedir(), '.bb/bb');
 const PKG = 'dark_disclose_range';
 const CRATE = 'disclose_range';
-// §19 C1 order, so a failure names the input that stopped being bound.
+// public_inputs.toml order, so a failure names the input that stopped being bound.
 const NAMES = ['context_hash', 'pk.x', 'pk.y', 'c.x', 'c.y', 'd.x', 'd.y', 'lo', 'hi'];
 
 const out = mkdtempSync(join(tmpdir(), 'dark-flip-'));
@@ -45,7 +44,7 @@ try {
 
   const real = readFileSync(`${out}/public_inputs`);
   if (real.length !== NAMES.length * 32) {
-    throw new Error(`${PKG} has ${real.length / 32} public inputs, expected ${NAMES.length} (§6/manifest.json)`);
+    throw new Error(`${PKG} has ${real.length / 32} public inputs, expected ${NAMES.length} (manifest.json)`);
   }
   verify(`${out}/public_inputs`); // throws if the honest proof does not verify
 

@@ -1,15 +1,14 @@
-# DARK-CB-1 public-input order -- normative (§6, §19 C1).
+# DARK-CB-1 public-input order -- normative.
 #
 # The canonical order is the one the contracts build inline today:
 # DarkKeyRegistry.register, DarkVault._transferInputs and DarkVault._withdrawInputs.
-# This file is the machine-readable copy, so `DarkPublicInputs.sol`,
-# `packages/dark-sdk/src/publicInputs.ts` and the Noir `main()` signatures can all be
-# generated from or asserted against one list.
+# This file is the machine-readable copy, so the contracts, the SDK's public-input encoder and
+# the Noir `main()` signatures can all be generated from or asserted against one list.
 #
-# Encoding (§19 C1): addresses left-padded uint160, everything else a big-endian uint256,
-# each in one bytes32. Points are two entries, x then y. The identity is (0, 0) (§19 X1).
+# Encoding: addresses left-padded uint160, everything else a big-endian uint256,
+# each in one bytes32. Points are two entries, x then y. The identity is (0, 0).
 #
-# `count` is the WIRE public-input count (§19 X2) -- what the verifier call site passes.
+# `count` is the WIRE public-input count -- what the verifier call site passes.
 # The VK's `publicInputsSize` is 8 larger: the pairing-point limbs travel inside the proof.
 #
 # circuits/tools/check-manifest.mjs asserts each circuit's compiled ABI matches this list.
@@ -69,7 +68,7 @@ inputs = [
   "amount",
 ]
 
-# Off-chain only: verified in the browser with bb.js, never deployed (§6).
+# Off-chain only: verified in the browser with bb.js, never deployed.
 [dark_disclose_range]
 onchain = false
 caller = "@darkwalletrh/dark-sdk/disclosure"

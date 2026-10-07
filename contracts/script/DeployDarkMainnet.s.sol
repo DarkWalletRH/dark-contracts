@@ -73,7 +73,7 @@ contract DeployDarkMainnet is Script {
 
         if (ownerSafe == guardianSafe) revert SameSafe(ownerSafe);
         // The owner proposes, executes and cancels on the timelock, so one key must not be enough
-        // (DARK-CB-1 §14.36: 2-of-3). The guardian may be 1-of-n: pausing fast is its whole job.
+        // (2-of-3). The guardian may be 1-of-n: pausing fast is its whole job.
         uint256 ownerThreshold = _threshold("owner", ownerSafe);
         if (ownerThreshold < 2) revert OwnerSafeThresholdTooLow(ownerThreshold);
         // 2-of-2 passes the threshold but one lost key then freezes unpause/setCaps/setGuardian for good

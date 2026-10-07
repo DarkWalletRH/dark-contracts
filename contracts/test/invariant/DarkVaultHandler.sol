@@ -13,7 +13,7 @@ import {DarkGrumpkin} from "../../src/libraries/DarkGrumpkin.sol";
 import {MockUSDG} from "../../src/mocks/MockUSDG.sol";
 import {DarkTestVerifier} from "../mocks/DarkTestVerifier.sol";
 
-/// @notice Handler with a plaintext ghost oracle of the confidential state (§15).
+/// @notice Handler with a plaintext ghost oracle of the confidential state.
 ///
 /// The ghost knows every actor's secret `sk`, its plaintext balance and its accumulated blinding
 /// `rho`, and reproduces the on-chain ciphertexts exactly:
@@ -32,7 +32,7 @@ import {DarkTestVerifier} from "../mocks/DarkTestVerifier.sol";
 ///
 /// Every branch that could revert returns early instead: `fail_on_revert = true`.
 contract DarkVaultHandler is Test {
-    /// @dev TEST-ONLY: H = H_SCALAR * G. Real H is a hash-to-curve point with unknown dlog (§3).
+    /// @dev TEST-ONLY: H = H_SCALAR * G. Real H is a hash-to-curve point with unknown dlog.
     uint256 internal constant H_SCALAR = 7;
     uint256 internal constant MAX_RHO = 1e6;
 

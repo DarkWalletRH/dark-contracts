@@ -12,7 +12,7 @@ import {MockUSDG} from "../src/mocks/MockUSDG.sol";
 
 /// @notice Deploys MockUSDG, DarkTimelock (an OZ TimelockController instance), the registry and the
 ///         vault. Verifier addresses come from env and are pinned against
-///         deployments/verifier-codehashes.json before they are wired (§18b.4, §19 X4).
+///         deployments/verifier-codehashes.json before they are wired.
 contract DeployDarkTestnet is Script {
     error UnpinnedVerifier(string name, address supplied, address pinned);
     error VerifierCodehashMismatch(string name, address at, bytes32 got, bytes32 pinned);
@@ -45,7 +45,7 @@ contract DeployDarkTestnet is Script {
 
         DarkKeyRegistry registry = new DarkKeyRegistry(registerVerifier);
 
-        // Testnet caps sit at the hard ceilings so the same bytecode paths are exercised (§6.5).
+        // Testnet caps sit at the hard ceilings so the same bytecode paths are exercised.
         IDarkVault.Caps memory caps = IDarkVault.Caps({
             minDeposit: 1,
             maxDeposit: 2_500e6,

@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity >=0.8.21;
 
-// The on-chain half of the circuits lane's check: the three deployed verifiers accept the real
+// The on-chain half of the public-input binding check: the three deployed verifiers accept the real
 // proofs, and reject a flip of EVERY public input -- including chain_id, the contract address,
 // the account and the nonce, which have no in-circuit relation and so cannot be tested by
-// `nargo test` (§6 "every binding public input ... has a negative test").
+// `nargo test` (every binding public input must have a negative test).
 //
 // No forge-std: gasleft() and require() are all this needs.
 import {HonkVerifier as RegisterVerifier} from "../../verifiers/register/Verifier.sol";

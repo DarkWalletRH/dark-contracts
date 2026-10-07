@@ -1,9 +1,9 @@
 // Reference Grumpkin via @noble/curves, for the differential test in test/DarkGrumpkin.t.sol.
 // Usage: node test/js/diff_grumpkin.mjs <seed-hex> [count]
 //
-// Prints JSON arrays of `count` cases (the first EDGE.length are the §19 X1 edge cases, the rest
+// Prints JSON arrays of `count` cases (the first EDGE.length are the edge cases, the rest
 // are pseudo-random): k1, k2, neg2 (1 = the second operand is negated), the two operand points and
-// their sum. k == 0 means the identity, which the contract encodes as (0, 0) (§19 X1).
+// their sum. k == 0 means the identity, which the contract encodes as (0, 0).
 import { createHash } from "node:crypto";
 import { weierstrass } from "@noble/curves/abstract/weierstrass.js";
 
@@ -21,7 +21,7 @@ const Point = weierstrass({
 
 const MAX = (1n << 48n) - 1n;
 
-// [k1, k2, neg2] — identity, doubling, P + (-P) and the range ends (§19 X1).
+// [k1, k2, neg2] — identity, doubling, P + (-P) and the range ends.
 const EDGE = [
   [0n, 0n, 0], // identity + identity
   [0n, 5n, 0], // identity + P

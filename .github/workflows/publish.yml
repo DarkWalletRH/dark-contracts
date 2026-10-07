@@ -1,0 +1,30 @@
+name: Publish package
+
+# Publishes @darkwalletrh/dark-contracts (ABIs, deployment record, pins, sources) to GitHub Packages
+# when a release tag (v1.2.3) is pushed. Uses the workflow's own GITHUB_TOKEN. Installing from a tag
+# with `npm install github:DarkWalletRH/dark-contracts#v1.2.3` works without any of this.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: https://npm.pkg.github.com
+          scope: "@darkwalletrh"
+      - name: package contents match the sources
+        run: node scripts/build-abi.mjs --check
+      - name: the tag matches package.json
+        run: test "v$(node -p 'require("./package.json").version')" = "${GITHUB_REF_NAME}"
+      - run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

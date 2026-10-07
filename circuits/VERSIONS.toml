@@ -1,5 +1,5 @@
-# Dark Wallet ZK toolchain pins (measured in the proving spike, 2026-09-16).
-# This pair is what actually built, proved and verified the spike circuit.
+# Dark ZK toolchain pins.
+# This pair is what built, proved and verified the circuits in this repo.
 
 [nargo]
 version = "1.0.0-beta.22"
@@ -9,7 +9,7 @@ install = "noirup --version 1.0.0-beta.22"
 version = "5.0.0-nightly.20260522"
 install = "bbup --version 5.0.0-nightly.20260522"
 # Compatible with nargo 1.0.0-beta.22 ACIR: `bb gates` / `prove` / `write_vk` /
-# `write_solidity_verifier` all accept target/dark_spike.json unchanged.
+# `write_solidity_verifier` all accept the compiled circuits unchanged.
 
 [bb_js]
 # Web prover. Must match the bb above byte-for-byte or the VK differs.
@@ -17,21 +17,15 @@ package = "@aztec/bb.js"
 version = "5.0.0-nightly.20260522"
 install = "npm i @aztec/bb.js@5.0.0-nightly.20260522"
 # note: npm dist-tag `latest` is 5.2.0 and nightlies have moved on to 6.0.0-*;
-# do NOT float. CI asserts one byte-identical VK across bb CLI / bb.js / noir-rs.
+# do NOT float: bb, bb.js and the bb that generated the deployed verifiers must be the same
+# build, or the VK differs.
 
 [noir_js]
 package = "@noir-lang/noir_js"
 version = "1.0.0-beta.22"
 install = "npm i @noir-lang/noir_js@1.0.0-beta.22"
 
-[noir_rs]
-# Native (mopro) prover. NOT yet verified in this spike.
-# Upstream lags: latest tagged is 1.0.0-beta.19 vs our beta.22 nargo.
-repo = "https://github.com/zkmopro/noir-rs"
-version = "1.0.0-beta.19"
-status = "unverified-at-spike"
-
-# ---- what a toolchain bump must re-check ---------------------------------------
+# ---- what a toolchain bump must re-check --------------------------------------------------------
 # Two of our soundness arguments rest on BACKEND behaviour rather than on constraints written in the
 # circuits, so a VK-hash diff alone is not enough to clear a nargo/bb upgrade:
 #

@@ -1,14 +1,11 @@
 // Deploy the two Honk libraries and the three verifiers to a chain, and pin them.
 //
 //   node scripts/deploy-verifiers.mjs --rpc-url <url> [--pin-file <path>] -- <forge auth flags>
-//   e.g.  … --rpc-url https://rpc.mainnet.chain.robinhood.com -- \
-//           --account <keystore> --password-file <password-file>
+//   e.g.  … --rpc-url https://rpc.mainnet.chain.robinhood.com -- <forge wallet flags, e.g. --ledger>
 //
-// On testnet this was done by hand with `forge create`, and the recipe had to be recovered from the
-// chain afterwards. This is that recipe as the thing that ships: the deploy-time
-// sources from scripts/lib/verifier-recipe.mjs, the libraries from a build with no library
-// settings, each verifier linked to exactly its own two. check:verifier-bytecode then proves the
-// result byte-for-byte.
+// The recipe: the deploy-time sources from scripts/lib/verifier-recipe.mjs, the libraries from a
+// build with no library settings, each verifier linked to exactly its own two. check:verifier-bytecode
+// then proves the result byte-for-byte.
 //
 // Each contract's row is written to the pin file as soon as it lands, and a row whose address
 // already carries its pinned codehash is skipped — so an interrupted run is resumed by running it
