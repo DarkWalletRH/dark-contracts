@@ -13,6 +13,8 @@
 [![CI](https://img.shields.io/github/actions/workflow/status/DarkWalletRH/dark-contracts/ci.yml?branch=main&style=flat-square&label=CI)](.github/workflows/ci.yml)
 [![Status: pre-audit](https://img.shields.io/badge/status-pre--audit-orange?style=flat-square)](#status)
 
+**Auditors: start at [AUDIT.md](AUDIT.md)** · design documents in [docs/](docs/)
+
 [Website](https://darkwallet.cash) · [Whitepaper](https://darkwallet.cash/whitepaper) · [Docs](https://darkwallet.cash/docs) · [SDK](https://github.com/DarkWalletRH/dark-sdk) · [Exit tool](https://github.com/DarkWalletRH/dark-exit) · [Starter template](https://github.com/DarkWalletRH/Darkwallet)
 
 </div>
@@ -99,7 +101,7 @@ deployment record, the bytecode pins and the Solidity sources. It has no depende
 a release tag:
 
 ```bash
-npm install github:DarkWalletRH/dark-contracts#v1.0.3
+npm install github:DarkWalletRH/dark-contracts#v1.0.4
 ```
 
 | Export | Contents |
@@ -210,7 +212,9 @@ forge test                          # the generated verifiers, driven with real 
 ## Specification references
 
 Comments of the form `§n` in the contracts, circuits and tools cite sections of the DARK-CB-1
-protocol specification, which is published with the audit report; the code is complete without it.
+protocol specification, [docs/DARK-CB-1.md](docs/DARK-CB-1.md) (its opening note maps the older
+section numbers some comments still use). The threat model, invariants, mutation report and circuit
+measurements are beside it in [docs/](docs/); [AUDIT.md](AUDIT.md) ties them together.
 
 ## Status
 

@@ -3,6 +3,8 @@ out/
 cache/
 broadcast/
 .mutants/
+# script/mutate.mjs writes its report here (tracked in the maintainers' tree, generated elsewhere).
+/audit/MUTATIONS.md
 broadcast/
 # scripts/check-verifier-bytecode.mjs builds here so it never disturbs forge test's cache.
 out-verify/

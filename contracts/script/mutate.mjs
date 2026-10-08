@@ -481,8 +481,8 @@ ${rows}
 
 ## Out of scope for this suite
 
-These mutations target circuits, the SDK or the build, not \`contracts/\`. They are run by the
-suite that covers those files.
+These mutations target circuits, the SDK or the build, not \`contracts/\`. This runner does not
+apply them; they are listed for reference, and the Owner column names the test expected to catch each.
 
 | # | Mutation | Owner |
 |---|---|---|
